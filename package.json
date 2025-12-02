@@ -2,12 +2,11 @@
   "name": "stock-analysis-vercel-api",
   "version": "1.0.0",
   "description": "Serverless API for stock analysis calculations.",
-  "main": "api/analyze.js", // Entry point untuk Vercel function
+  "main": "api/analyze.js",
   "scripts": {
     "start": "node api/analyze.js" 
   },
   "dependencies": {
-    "node-fetch": "^2.6.7" // Diperlukan untuk fetch data di Node.js/Vercel
-    // "axios": "^1.6.0" // Atau menggunakan axios
+    "node-fetch": "^2.6.7" 
   }
 }
