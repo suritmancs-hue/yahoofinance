@@ -18,7 +18,7 @@ const {
 const ATR_SHORT_PERIOD = 14;
 const ATR_LONG_PERIOD = 100;
 const VOLUME_MA_PERIOD = 20;
-const HISTORY_DAYS = 120; // Minimal 100 hari + buffer
+const HISTORY_DAYS = 30; // Minimal 100 hari + buffer
 
 /**
  * Endpoint utama Serverless Function Vercel.
