@@ -15,9 +15,9 @@ const {
 } = require('../stockAnalysis'); 
 
 // --- Konstanta Analisis ---
-const ATR_SHORT_PERIOD = 14;
-const ATR_LONG_PERIOD = 100;
-const VOLUME_MA_PERIOD = 20;
+const ATR_SHORT_PERIOD = 5;
+const ATR_LONG_PERIOD = 15;
+const VOLUME_MA_PERIOD = 10;
 const HISTORY_DAYS = 30; // Minimal 100 hari + buffer
 
 /**
