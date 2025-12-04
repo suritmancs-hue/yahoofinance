@@ -1,5 +1,5 @@
 // api/analyze.js
-// Fungsi Serverless Vercel yang telah diperbarui untuk mengembalikan data OHLCV
+// Fungsi Serverless Vercel yang telah diperbarui untuk timeframe 1 JAM
 
 const fetch = require('node-fetch');
 
@@ -13,7 +13,8 @@ const {
 // --- Konstanta Analisis ---
 const VOLUME_MA_PERIOD = 16;     
 const VOLATILITY_PERIOD = 16;    
-const HISTORY_DAYS = 30;         // Jumlah hari data historis yang diambil (untuk perhitungan)
+const HISTORY_PERIOD = '5d';
+const INTERVAL_PERIOD = '1h';
 
 /**
  * Endpoint utama Serverless Function Vercel.
@@ -25,8 +26,9 @@ module.exports = async (req, res) => {
   }
 
   const formattedTicker = ticker.toUpperCase().includes('.JK') ? ticker.toUpperCase() : `${ticker.toUpperCase()}.JK`;
-  // Memastikan mengambil data yang cukup untuk perhitungan Volatility (16 hari)
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${formattedTicker}?interval=1d&range=${HISTORY_DAYS}d`;
+  
+  // URL PERMINTAAN DENGAN INTERVAL 1H
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${formattedTicker}?interval=${INTERVAL_PERIOD}&range=${HISTORY_PERIOD}`;
 
   try {
     const apiResponse = await fetch(url);
@@ -41,8 +43,9 @@ module.exports = async (req, res) => {
     const indicators = result.indicators.quote[0];
     const timestamps = result.timestamp;
     
+    // Data harus diproses sebagai data jam
     const historyData = timestamps.map((ts, i) => ({
-      timestamp: ts * 1000, // Konversi ke milisekon
+      timestamp: ts * 1000,
       open: indicators.open[i],
       high: indicators.high[i],
       low: indicators.low[i],
@@ -56,24 +59,25 @@ module.exports = async (req, res) => {
     let volatilityRatio = 0;         
     let lastDayData = {};
 
-    // 4. Perhitungan Indikator (Jika data cukup)
-    if (historyData.length >= HISTORY_DAYS) {
+    // 4. Perhitungan Indikator (Pastikan ada cukup data jam)
+    // Diperlukan minimal 17 candle terakhir untuk perhitungan 16 periode historis + 1 candle terakhir
+    if (historyData.length > VOLATILITY_PERIOD) { 
         
-        // Data Hari Terakhir (untuk kolom B-G di Sheets)
+        // Data Candle Terakhir
         lastDayData = historyData[historyData.length - 1];
 
-        // A. Perhitungan Volatility (Max/Min 16)
+        // A. Perhitungan Volatility (Max/Min 16 candle sebelumnya)
         volatilityRatio = calculateVolatilityRatio(historyData, VOLATILITY_PERIOD); 
 
-        // B. Perhitungan Volume Spike (Vol sekarang / MA 16)
+        // B. Perhitungan Volume Spike (Vol candle terakhir / MA 16 candle sebelumnya)
         const currentVolume = lastDayData.volume;
         const maVolume16 = calculateMAVolume(volumeArray, VOLUME_MA_PERIOD);
         volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16); 
         
     } else {
-        // Data tidak cukup
+        // Data jam tidak cukup (misalnya, kurang dari 17 candle)
         return res.status(200).json({ 
-            status: "Data tidak cukup", 
+            status: "Data jam tidak cukup", 
             ticker: formattedTicker,
             volSpikeRatio: 0,
             volatilityRatio: 0,
@@ -82,13 +86,13 @@ module.exports = async (req, res) => {
         });
     }
 
-    // 5. Kembalikan Hasil Sukses (MENGEMBALIKAN DATA HARGA HARI TERAKHIR)
+    // 5. Kembalikan Hasil Sukses
     res.status(200).json({
       status: "Sukses",
       ticker: formattedTicker,
       volSpikeRatio: volSpikeRatio,     
       volatilityRatio: volatilityRatio, 
-      lastDayData: lastDayData, // <-- MENGEMBALIKAN OHLCV HARI TERAKHIR
+      lastDayData: lastDayData, 
       timestamp: new Date().toISOString()
     });
 
