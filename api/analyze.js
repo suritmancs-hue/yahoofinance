@@ -1,22 +1,19 @@
 // api/analyze.js
-// Fungsi Serverless Vercel yang telah diperbarui untuk 3 indikator
+// Fungsi Serverless Vercel yang telah diperbarui untuk mengembalikan data OHLCV
 
 const fetch = require('node-fetch');
 
-// Mengimpor fungsi perhitungan, termasuk yang baru
+// Mengimpor fungsi perhitungan
 const { 
-  calculateATR, 
   calculateMAVolume, 
-  calculateATRRatio, 
   calculateVolumeRatio,
-  calculateCloseRangeRatio // <--- IMPOR FUNGSI BARU
+  calculateVolatilityRatio 
 } = require('../stockAnalysis'); 
 
-// --- Konstanta Analisis (Diasumsikan Anda sudah menguranginya ke 30 hari) ---
-const ATR_SHORT_PERIOD = 5;      
-const ATR_LONG_PERIOD = 15;      
-const VOLUME_MA_PERIOD = 10;     
-const HISTORY_DAYS = 30;         
+// --- Konstanta Analisis ---
+const VOLUME_MA_PERIOD = 16;     
+const VOLATILITY_PERIOD = 16;    
+const HISTORY_DAYS = 30;         // Jumlah hari data historis yang diambil (untuk perhitungan)
 
 /**
  * Endpoint utama Serverless Function Vercel.
@@ -28,6 +25,7 @@ module.exports = async (req, res) => {
   }
 
   const formattedTicker = ticker.toUpperCase().includes('.JK') ? ticker.toUpperCase() : `${ticker.toUpperCase()}.JK`;
+  // Memastikan mengambil data yang cukup untuk perhitungan Volatility (16 hari)
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${formattedTicker}?interval=1d&range=${HISTORY_DAYS}d`;
 
   try {
@@ -41,10 +39,10 @@ module.exports = async (req, res) => {
 
     // Parsing dan Persiapan Data
     const indicators = result.indicators.quote[0];
-    const lastPrice = result.meta?.regularMarketPrice || 0;
+    const timestamps = result.timestamp;
     
-    const historyData = result.timestamp.map((ts, i) => ({
-      timestamp: ts * 1000,
+    const historyData = timestamps.map((ts, i) => ({
+      timestamp: ts * 1000, // Konversi ke milisekon
       open: indicators.open[i],
       high: indicators.high[i],
       low: indicators.low[i],
@@ -54,51 +52,43 @@ module.exports = async (req, res) => {
 
     const volumeArray = historyData.map(d => d.volume);
 
-    let atrRatio = 0;
-    let volumeRatio = 0;
-    let closeRangeRatio = 0; // <--- VARIABEL BARU
+    let volSpikeRatio = 0;           
+    let volatilityRatio = 0;         
+    let lastDayData = {};
 
     // 4. Perhitungan Indikator (Jika data cukup)
     if (historyData.length >= HISTORY_DAYS) {
         
-        // A. Perhitungan ATR dan Rasio
-        const atr5 = calculateATR(historyData, ATR_SHORT_PERIOD);
-        const atr15 = calculateATR(historyData, ATR_LONG_PERIOD);
-        atrRatio = calculateATRRatio(atr5, atr15);
+        // Data Hari Terakhir (untuk kolom B-G di Sheets)
+        lastDayData = historyData[historyData.length - 1];
 
-        // B. Perhitungan Volume Spike dan Rasio
-        const currentVolume = volumeArray[volumeArray.length - 1]; 
-        const maVolume10 = calculateMAVolume(volumeArray, VOLUME_MA_PERIOD);
-        volumeRatio = calculateVolumeRatio(currentVolume, maVolume10);
+        // A. Perhitungan Volatility (Max/Min 16)
+        volatilityRatio = calculateVolatilityRatio(historyData, VOLATILITY_PERIOD); 
 
-        // C. Perhitungan Close vs. High Range (TEKANAN BELI)
-        const lastDayData = historyData[historyData.length - 1];
-        const high = lastDayData.high;
-        const low = lastDayData.low;
-        const close = lastDayData.close;
-        closeRangeRatio = calculateCloseRangeRatio(high, low, close); // <--- PERHITUNGAN BARU
-
+        // B. Perhitungan Volume Spike (Vol sekarang / MA 16)
+        const currentVolume = lastDayData.volume;
+        const maVolume16 = calculateMAVolume(volumeArray, VOLUME_MA_PERIOD);
+        volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16); 
+        
     } else {
         // Data tidak cukup
         return res.status(200).json({ 
             status: "Data tidak cukup", 
             ticker: formattedTicker,
-            lastPrice: lastPrice, 
-            atrRatio: 0, 
-            volumeRatio: 0,
-            closeRangeRatio: 0, // <--- TAMBAHKAN DI SINI JUGA
+            volSpikeRatio: 0,
+            volatilityRatio: 0,
+            lastDayData: {timestamp: new Date().getTime(), open: 'N/A', high: 'N/A', low: 'N/A', close: 'N/A', volume: 'N/A'},
             timestamp: new Date().toISOString()
         });
     }
 
-    // 5. Kembalikan Hasil Sukses
+    // 5. Kembalikan Hasil Sukses (MENGEMBALIKAN DATA HARGA HARI TERAKHIR)
     res.status(200).json({
       status: "Sukses",
       ticker: formattedTicker,
-      lastPrice: lastPrice,
-      atrRatio: atrRatio,
-      volumeRatio: volumeRatio,
-      closeRangeRatio: closeRangeRatio, // <--- TAMBAHKAN NILAI BARU KE RESPONSE
+      volSpikeRatio: volSpikeRatio,     
+      volatilityRatio: volatilityRatio, 
+      lastDayData: lastDayData, // <-- MENGEMBALIKAN OHLCV HARI TERAKHIR
       timestamp: new Date().toISOString()
     });
 
