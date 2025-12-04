@@ -1,5 +1,6 @@
 /**
  * stockAnalysis.js - Berisi semua fungsi perhitungan analitik.
+ * TELAH DIMODIFIKASI: Perhitungan VolumeMA dan Volatility mengabaikan candle terakhir.
  */
 
 // --- Fungsi Pembantu (Helper) ---
@@ -21,27 +22,37 @@ function calculateAverage(dataArray) {
 
 /**
  * Menghitung Rata-rata Volume (Moving Average Volume - MA Volume).
+ * Hanya menggunakan data historis (mengabaikan volume candle terakhir).
  */
 function calculateMAVolume(volumeArray, period) {
-  if (volumeArray.length < period) return 0;
+  // 1. Keluarkan volume candle terakhir
+  const historicalVolume = volumeArray.slice(0, volumeArray.length - 1);
   
-  const startIndex = volumeArray.length - period;
+  if (historicalVolume.length < period) return 0;
+  
+  // 2. Ambil volume dari periode N hari terakhir dari data historis
+  const startIndex = historicalVolume.length - period;
   if (startIndex < 0) return 0;
   
-  const relevantVolume = volumeArray.slice(startIndex);
+  const relevantVolume = historicalVolume.slice(startIndex);
   return calculateAverage(relevantVolume);
 }
 
 /**
  * Menghitung Rasio Volatilitas (Max Price 16 / Min Price 16).
+ * Hanya menggunakan data historis (mengabaikan candle terakhir).
  */
 function calculateVolatilityRatio(historyData, period) {
-  if (historyData.length < period) return 0;
+  // 1. Keluarkan candle terakhir dari data
+  const historicalHistory = historyData.slice(0, historyData.length - 1);
+
+  if (historicalHistory.length < period) return 0;
   
-  const startIndex = historyData.length - period;
+  // 2. Ambil data harga dari periode N hari terakhir dari data historis
+  const startIndex = historicalHistory.length - period;
   if (startIndex < 0) return 0;
   
-  const relevantHistory = historyData.slice(startIndex);
+  const relevantHistory = historicalHistory.slice(startIndex);
   
   let maxPrice = -Infinity;
   let minPrice = Infinity;
@@ -65,17 +76,30 @@ function calculateVolatilityRatio(historyData, period) {
 
 /**
  * Menghitung Rasio Volume Spike (Vol sekarang / MA Volume).
+ * (Fungsi ini tetap sama, karena yang diubah adalah calculateMAVolume yang dipanggilnya)
  */
 function calculateVolumeRatio(currentVolume, maVolume) {
   if (maVolume === 0 || isNaN(maVolume)) return 999; 
   return currentVolume / maVolume;
 }
 
-// --- Ekspor Modul (PENTING untuk Node.js/Vercel) ---
+/**
+ * Menghitung Rasio Close vs. High Range (Tekanan Beli).
+ * (Fungsi ini tetap sama, karena hanya menggunakan data hari terakhir)
+ */
+function calculateCloseRangeRatio(H, L, C) {
+  const range = H - L;
+  if (range === 0) return 0.5; 
+  return (C - L) / range;
+}
+
+// --- Ekspor Modul ---
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     calculateMAVolume,
     calculateVolumeRatio,
     calculateVolatilityRatio,
+    calculateCloseRangeRatio,
+    // Menghapus fungsi ATR dan ATRRatio karena tidak digunakan
   };
 }
