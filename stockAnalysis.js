@@ -1,6 +1,5 @@
 /**
  * stockAnalysis.js - Berisi semua fungsi perhitungan analitik.
- * TELAH DIMODIFIKASI: Perhitungan VolumeMA dan Volatility mengabaikan candle terakhir.
  */
 
 // --- Fungsi Pembantu (Helper) ---
@@ -83,23 +82,11 @@ function calculateVolumeRatio(currentVolume, maVolume) {
   return currentVolume / maVolume;
 }
 
-/**
- * Menghitung Rasio Close vs. High Range (Tekanan Beli).
- * (Fungsi ini tetap sama, karena hanya menggunakan data hari terakhir)
- */
-function calculateCloseRangeRatio(H, L, C) {
-  const range = H - L;
-  if (range === 0) return 0.5; 
-  return (C - L) / range;
-}
-
 // --- Ekspor Modul ---
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     calculateMAVolume,
     calculateVolumeRatio,
     calculateVolatilityRatio,
-    calculateCloseRangeRatio,
-    // Menghapus fungsi ATR dan ATRRatio karena tidak digunakan
   };
 }
