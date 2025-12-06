@@ -10,8 +10,8 @@ const { 
 // --- Konstanta Analisis ---
 const VOLUME_MA_PERIOD = 16;     
 const VOLATILITY_PERIOD = 16;    
-const HISTORY_PERIOD = '5d'; // Dipertahankan 5d untuk interval 1h
-const INTERVAL_PERIOD = '1h';
+const HISTORY_PERIOD = '30d';     //5d
+const INTERVAL_PERIOD = '1d';    //1h
 
 /**
  * Endpoint utama Serverless Function Vercel.
