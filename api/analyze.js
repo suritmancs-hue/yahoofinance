@@ -18,6 +18,9 @@ const INTERVAL_PERIOD = '1d';    //1h
  */
 module.exports = async (req, res) => {
   const ticker = req.query.ticker;
+  const HISTORY_PERIOD = req.query.range;
+  const INTERVAL_PERIOD = req.query.interval;
+  
   if (!ticker) {
     return res.status(400).json({ error: 'Parameter ticker diperlukan.' });
   }
