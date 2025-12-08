@@ -33,37 +33,46 @@ module.exports = async (req, res) => {
       high: indicators.high[i],
       low: indicators.low[i],
       close: indicators.close[i],
-      volume: indicators.volume[i] || 0 // Fallback ke 0 jika volume null
+      volume: indicators.volume[i] || 0
     })).filter(d => d.close !== null);
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
-    const latestPriceData = historyData[historyData.length - 1]; // Tetap ambil harga terbaru untuk output
+    const latestCandle = historyData[historyData.length - 1];
 
-    // --- STRATEGI N-1 ---
-    // Pastikan data cukup (Periode 16 + buffer 1 candle)
-    if (historyData.length > 17) {
-        
-        // 1. Potong candle terakhir agar kalkulasi menggunakan data stabil
-        const stableHistory = historyData.slice(0, historyData.length - 1);
+    // --- LOGIKA PENGECEKAN MENIT 00 ---
+    const lastDate = new Date(latestCandle.timestamp);
+    const lastMinute = lastDate.getUTCMinutes();
+    
+    let stableHistory = [];
+    let currentVolumeForSpike = 0;
+
+    if (lastMinute !== 0) {
+        // Jika menit bukan 00 (misal 13:45), data volume belum valid.
+        // Gunakan N-1 untuk kalkulasi.
+        stableHistory = historyData.slice(0, historyData.length - 1);
+        currentVolumeForSpike = stableHistory[stableHistory.length - 1]; // Volume N-1
+    } else {
+        // Jika menit tepat 00 (misal 14:00), candle baru saja tertutup/tepat jam.
+        // Gunakan data sampai candle terakhir (N).
+        stableHistory = historyData;
+        currentVolumeForSpike = latestCandle.volume; // Volume N
+    }
+
+    // --- PERHITUNGAN ---
+    if (stableHistory.length > 17) {
         const volumeArray = stableHistory.map(d => d.volume);
 
-        // 2. Hitung Volatilitas (Berdasarkan data 0 sampai N-1)
+        // 1. Hitung Volatilitas (Berdasarkan data yang sudah diputuskan stabil)
         volatilityRatio = calculateVolatilityRatio(stableHistory, 16);
 
-        // 3. Hitung Volume Spike (Volume N-1 dibanding MA 16 data sebelumnya)
-        const currentVolume = volumeArray[volumeArray.length - 1]; // Ini adalah Volume N-1
+        // 2. Hitung MA Volume (Menggunakan data historis dari stableHistory)
         const maVolume16 = calculateMAVolume(volumeArray, 16);
-        volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16);
         
-    } else {
-        return res.status(200).json({ 
-            status: "Data historis tidak mencukupi", 
-            ticker: formattedTicker,
-            volSpikeRatio: 0, 
-            volatilityRatio: 0, 
-            lastDayData: latestPriceData 
-        });
+        // 3. Hitung Spike Ratio
+        // currentVolumeForSpike diambil berdasarkan kondisi menit di atas
+        volSpikeRatio = calculateVolumeRatio(currentVolumeForSpike, maVolume16);
+        
     }
 
     res.status(200).json({
@@ -71,7 +80,11 @@ module.exports = async (req, res) => {
       ticker: formattedTicker,
       volSpikeRatio: volSpikeRatio,     
       volatilityRatio: volatilityRatio, 
-      lastDayData: latestPriceData, 
+      lastDayData: latestCandle, // Selalu kembalikan harga running terakhir ke spreadsheet
+      timestampInfo: {
+          lastMinute: lastMinute,
+          usingNMinusOne: (lastMinute !== 0)
+      }
     });
 
   } catch (error) {
