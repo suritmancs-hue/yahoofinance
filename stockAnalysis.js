@@ -1,4 +1,6 @@
-// stockAnalysis.js
+/**
+ * stockAnalysis.js - Logika perhitungan modular
+ */
 
 function calculateAverage(dataArray) {
   if (dataArray.length === 0) return 0;
@@ -13,7 +15,7 @@ function calculateAverage(dataArray) {
  */
 function calculateMAVolume(volumeArray, period) {
   // Hanya ambil data historis: buang candle terakhir dari array yang dikirim
-  const historicalOnly = volumeArray.slice(0, volumeArray.length - 1); // Ini sekarang adalah (N-2) ke belakang
+  const historicalOnly = volumeArray.slice(0, volumeArray.length - 1); 
   
   if (historicalOnly.length < period) return 0;
   
@@ -42,6 +44,9 @@ function calculateVolatilityRatio(historicalDataArray, period) {
   return (minPrice === 0 || minPrice === Infinity) ? 1 : maxPrice / minPrice;
 }
 
+/**
+ * Menghitung Rasio Spike.
+ */
 function calculateVolumeRatio(currentVolume, maVolume) {
   if (maVolume === 0 || isNaN(maVolume)) return 0; 
   return currentVolume / maVolume;
