@@ -11,10 +11,9 @@ function calculateAverage(dataArray) {
 
 /**
  * Menghitung MA Volume.
- * Input volumeArray adalah data volume stabil (0 hingga N-1).
  */
 function calculateMAVolume(volumeArray, period) {
-  // Hanya ambil data historis: buang candle terakhir dari array yang dikirim
+  
   const historicalOnly = volumeArray.slice(0, volumeArray.length - 1); 
   
   if (historicalOnly.length < period) return 0;
@@ -24,11 +23,10 @@ function calculateMAVolume(volumeArray, period) {
 }
 
 /**
- * Menghitung Rasio Volatilitas (Max/Min).
- * Input historicalDataArray adalah data harga stabil (0 hingga N-1).
+ * Menghitung Rasio Volatilitas (Max/Min)..
  */
 function calculateVolatilityRatio(historicalDataArray, period) {
-  // Hanya ambil data historis: buang candle terakhir dari array yang dikirim
+  
   const historicalOnly = historicalDataArray.slice(0, historicalDataArray.length - 1);
   
   if (historicalOnly.length < period) return 0;
