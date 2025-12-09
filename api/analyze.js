@@ -21,15 +21,14 @@ function convertUnixTimestampToUTC8String(unixTimestampSeconds) {
 
 module.exports = async (req, res) => {
   const ticker = req.query.ticker;
-  const range = req.query.range || '30d'; // Pastikan range cukup panjang untuk PERIOD 16
-  const interval = req.query.interval || '1d';
+  const range = req.query.range;
+  const interval = req.query.interval;
   
   if (!ticker) {
     return res.status(400).json({ error: 'Parameter ticker diperlukan.' });
   }
 
-  const formattedTicker = ticker.toUpperCase().includes('.JK') ? ticker.toUpperCase() : `${ticker.toUpperCase()}.JK`;
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${formattedTicker}?interval=${interval}&range=${range}`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
 
   try {
     const apiResponse = await fetch(url);
@@ -51,36 +50,29 @@ module.exports = async (req, res) => {
       low: indicators.low[i],
       close: indicators.close[i],
       volume: indicators.volume[i] || 0 
-    })).filter(d => d.close !== null && d.close !== undefined);
+    })).filter(d => typeof d.close === 'number' && !isNaN(d.close));
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
 
-    // PERBAIKAN 1: Ambil candle terakhir dengan index -1
+    // Ambil candle terakhir
     const latestCandle = historyData[historyData.length - 1]; 
-
-    // console.log(`Last Data Check:`, latestCandle);
 
     const PERIOD = 16;
     
-    // Pastikan data cukup (Period + 1 candle hari ini)
+    // Pastikan data cukup
     if (historyData.length > PERIOD) {
         
         // 1. Hitung Volatilitas (Menggunakan data array object langsung)
-        // Fungsi ini di stockAnalysis memotong candle terakhir, jadi aman kirim historyData full
         volatilityRatio = calculateVolatilityRatio(historyData, PERIOD);
 
         // 2. Hitung MA Volume
-        const volumeArray = historyData.map(d => d.volume);
-        
-        // Fungsi ini di stockAnalysis memotong candle terakhir (current), menghitung rata-rata N sebelumnya
+        const volumeArray = historyData.map(d => d.volume);        
         const maVolume16 = calculateMAVolume(volumeArray, PERIOD);
         
         // 3. Hitung Spike Ratio
-        // PERBAIKAN 2: Ambil volume terakhir dengan index yang benar
-        const currentVolumeForSpike = volumeArray[volumeArray.length - 1]; 
-        
-        volSpikeRatio = calculateVolumeRatio(currentVolumeForSpike, maVolume16);
+        const currentVolume = volumeArray[volumeArray.length - 1];
+        volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16);
     } 
 
     res.status(200).json({
@@ -88,7 +80,7 @@ module.exports = async (req, res) => {
       ticker: formattedTicker,
       volSpikeRatio: parseFloat(volSpikeRatio.toFixed(3)),      
       volatilityRatio: parseFloat(volatilityRatio.toFixed(3)), 
-      lastDayData: latestCandle, 
+      lastData: latestCandle, 
       timestampInfo: {
           note: "Timestamp displayed is converted to UTC+8",
           serverTime: new Date().toISOString()
