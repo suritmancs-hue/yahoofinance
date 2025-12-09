@@ -1,6 +1,4 @@
-/**
- * stockAnalysis.js - Logika perhitungan modular
- */
+// stockAnalysis.js
 
 function calculateAverage(dataArray) {
   if (dataArray.length === 0) return 0;
@@ -11,12 +9,11 @@ function calculateAverage(dataArray) {
 
 /**
  * Menghitung MA Volume.
- * Input volumeArray adalah data volume stabil (sudah diputuskan N atau N-1 di analyze.js).
- * Candle terakhir dari array ini adalah candle yang sedang dihitung (currentVolumeForSpike).
+ * Input volumeArray adalah data volume stabil (0 hingga N-1).
  */
 function calculateMAVolume(volumeArray, period) {
   // Hanya ambil data historis: buang candle terakhir dari array yang dikirim
-  const historicalOnly = volumeArray.slice(0, volumeArray.length - 1);
+  const historicalOnly = volumeArray.slice(0, volumeArray.length - 1); // Ini sekarang adalah (N-2) ke belakang
   
   if (historicalOnly.length < period) return 0;
   
@@ -26,12 +23,12 @@ function calculateMAVolume(volumeArray, period) {
 
 /**
  * Menghitung Rasio Volatilitas (Max/Min).
- * Input historicalDataArray adalah data harga stabil.
+ * Input historicalDataArray adalah data harga stabil (0 hingga N-1).
  */
 function calculateVolatilityRatio(historicalDataArray, period) {
   // Hanya ambil data historis: buang candle terakhir dari array yang dikirim
   const historicalOnly = historicalDataArray.slice(0, historicalDataArray.length - 1);
-
+  
   if (historicalOnly.length < period) return 0;
   
   const relevantHistory = historicalOnly.slice(historicalOnly.length - period);
@@ -45,9 +42,6 @@ function calculateVolatilityRatio(historicalDataArray, period) {
   return (minPrice === 0 || minPrice === Infinity) ? 1 : maxPrice / minPrice;
 }
 
-/**
- * Menghitung Rasio Spike.
- */
 function calculateVolumeRatio(currentVolume, maVolume) {
   if (maVolume === 0 || isNaN(maVolume)) return 0; 
   return currentVolume / maVolume;
