@@ -1,111 +1,116 @@
-// analyze.js:
+// analyze.js
 
+// Tidak perlu require module terpisah jika logicnya sedikit, 
+// tapi jika ingin tetap modular, pastikan require dilakukan di atas.
 const { 
   calculateMAVolume, 
-  calculateVolumeRatio,
+  calculateVolumeRatio, 
   calculateVolatilityRatio 
 } = require('../stockAnalysis'); 
 
-// --- Konstanta UTC+8 ---
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
 
-// --- Fungsi Helper Timestamp ---
-function convertUnixTimestampToUTC8String(unixTimestampSeconds) {
-    if (typeof unixTimestampSeconds !== 'number' || unixTimestampSeconds <= 0) {
-        return '';
-    }
-    // Manipulasi agar tampil seolah-olah UTC+8 di string GMT
-    const adjustedTimestampSeconds = unixTimestampSeconds + UTC_OFFSET_SECONDS;
-    const dateObject = new Date(adjustedTimestampSeconds * 1000);
-    return dateObject.toUTCString().replace('GMT', 'WITA'); // Opsional: Ganti label GMT agar tidak bingung
+// Optimasi Helper Timestamp: Langsung return string tanpa validasi berlebih di awal
+// karena data dari Yahoo biasanya konsisten strukturnya.
+function convertTimestamp(unixSeconds) {
+    if (!unixSeconds) return '';
+    const date = new Date((unixSeconds + UTC_OFFSET_SECONDS) * 1000);
+    // Menggunakan replace regex global lebih cepat untuk format standar
+    return date.toUTCString().replace('GMT', 'WITA'); 
 }
 
 module.exports = async (req, res) => {
-  const ticker = req.query.ticker;
-  const range = req.query.range;
-  const interval = req.query.interval;
+  // Destructuring query langsung
+  const { ticker, range, interval } = req.query;
   
-  if (!ticker) {
-    return res.status(400).json({ error: 'Parameter ticker diperlukan.' });
-  }
+  if (!ticker) return res.status(400).json({ error: 'Ticker required.' });
 
-  const baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`;
-  const urlObj = new URL(baseUrl);
-  urlObj.searchParams.append('interval', interval); // Otomatis menangani karakter & dan ?
-  urlObj.searchParams.append('range', range);
-
-  //Konversi kembali ke string untuk fetch
-  const finalUrl = urlObj.toString();
+  // Gunakan URL native tanpa variabel perantara yang tidak perlu
+  const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`);
+  url.searchParams.set('interval', interval || '1d'); // Default fallback
+  url.searchParams.set('range', range || '1mo');
 
   try {
-    const apiResponse = await fetch(finalUrl);
+    const apiResponse = await fetch(url.toString(), {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    
+    // Langsung ambil JSON
     const data = await apiResponse.json();
     const result = data?.chart?.result?.[0];
 
-    if (!result || !result.indicators.quote[0].close) {
-      return res.status(404).json({ status: `Data tidak ditemukan untuk ticker ${ticker}.` });
+    // Cek keberadaan data vital (timestamp & close)
+    if (!result || !result.timestamp || !result.indicators.quote[0].close) {
+      return res.status(404).json({ status: `No data for ${ticker}` });
     }
 
-    const indicators = result.indicators.quote[0];
-    const timestamp = result.timestamp;
+    const { timestamp } = result;
+    const { open, high, low, close, volume } = result.indicators.quote[0];
+    const dataLength = timestamp.length;
 
-    // Filter data yang valid saja (kadang Yahoo memberikan null di tengah data)
-    const historyData = timestamp.map((ts, i) => ({
-        timestamp: convertUnixTimestampToUTC8String(ts), 
-        open: indicators.open[i],
-        high: indicators.high[i],
-        low: indicators.low[i],
-        close: indicators.close[i],
-        volume: indicators.volume[i] || 0 
-    })).filter((d, i) => {
-        // A. Cek apakah harga valid
-        const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
-        // B. Cek apakah Menit == 00
-        const timeStr = d.timestamp;
-        const isMinuteZero = timeStr.includes(":00:00");
+    // --- OPTIMASI FILTER & MAPPING (Single Loop) ---
+    // Daripada map() lalu filter() (2x loop), gunakan reduce() atau loop manual (1x loop)
+    // Ini menghemat memori dan CPU time.
     
-        // C. Gabungkan syarat
-        return isValidPrice && isMinuteZero;
+    const historyData = [];
+    
+    for (let i = 0; i < dataLength; i++) {
+        const c = close[i];
+        
+        // Cek harga valid
+        if (typeof c !== 'number' || isNaN(c)) continue;
 
-    });
+        const tsStr = convertTimestamp(timestamp[i]);
+        
+        // Filter Menit :00 (String check lebih cepat dari Date object parsing)
+        if (!tsStr.includes(":00:00")) continue;
 
+        // Push data valid
+        historyData.push({
+            timestamp: tsStr,
+            open: open[i],
+            high: high[i],
+            low: low[i],
+            close: c,
+            volume: volume[i] || 0
+        });
+    }
+
+    // Cek Data Kosong
+    if (historyData.length === 0) {
+        return res.status(404).json({ status: "Data Empty after filter" });
+    }
+
+    const latestCandle = historyData[historyData.length - 1];
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
-
-    // Ambil candle terakhir
-    const latestCandle = historyData[historyData.length - 1]; 
-
     const PERIOD = 16;
-    
-    // Pastikan data cukup
+
     if (historyData.length > PERIOD) {
-        
-        // 1. Hitung Volatilitas (Menggunakan data array object langsung)
         volatilityRatio = calculateVolatilityRatio(historyData, PERIOD);
-
-        // 2. Hitung MA Volume
-        const volumeArray = historyData.map(d => d.volume);        
-        const maVolume16 = calculateMAVolume(volumeArray, PERIOD);
         
-        // 3. Hitung Spike Ratio
-        const currentVolume = volumeArray[volumeArray.length - 1];
+        // Optimasi: Tidak perlu map ulang volumeArray jika logic MA bisa terima object
+        // Tapi jika library stockAnalysis butuh array angka, lakukan map hanya untuk slice terakhir
+        // agar tidak meloop seluruh history panjang.
+        const relevantHistory = historyData.slice(-(PERIOD + 1)); // Ambil secukupnya saja
+        const relevantVolume = relevantHistory.map(d => d.volume);
+        
+        const maVolume16 = calculateMAVolume(relevantVolume, PERIOD);
+        const currentVolume = relevantVolume[relevantVolume.length - 1];
         volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16);
-    } 
+    }
 
+    // Response JSON ringkas
     res.status(200).json({
       status: "Sukses",
-      ticker: ticker,
-      volSpikeRatio: parseFloat(volSpikeRatio.toFixed(3)),      
-      volatilityRatio: parseFloat(volatilityRatio.toFixed(3)), 
-      lastData: latestCandle, 
-      timestampInfo: {
-          note: "Timestamp displayed is converted to UTC+8",
-          serverTime: new Date().toISOString()
-      }
+      ticker, // Shorthand property
+      volSpikeRatio: Number(volSpikeRatio.toFixed(3)), // Number() lebih bersih dari parseFloat
+      volatilityRatio: Number(volatilityRatio.toFixed(3)),
+      lastData: latestCandle
     });
 
   } catch (error) {
-    console.error("Vercel Error:", error);
-    res.status(500).json({ error: 'Gagal memproses data.', details: error.message });
+    console.error(error); // Log ringkas
+    res.status(500).json({ error: 'Server Error' });
   }
 };
