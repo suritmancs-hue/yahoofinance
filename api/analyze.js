@@ -1,4 +1,5 @@
-const fetch = require('node-fetch');
+// analyze.js:
+
 const { 
   calculateMAVolume, 
   calculateVolumeRatio,
