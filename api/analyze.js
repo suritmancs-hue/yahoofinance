@@ -33,53 +33,29 @@ module.exports = async (req, res) => {
       high: indicators.high[i],
       low: indicators.low[i],
       close: indicators.close[i],
-      volume: indicators.volume[i] || 0 // Fallback ke 0 jika volume null
+      volume: indicators.volume[i] || 0
     })).filter(d => d.close !== null);
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
-    const latestCandle = historyData[historyData.length - 1];
+    const latestCandle = historyData[historyData.length - 1]; // Tetap ambil N untuk info harga
 
-    // --- LOGIKA PENENTUAN STABILITAS CANDLE ---
-    let stableHistory = [];
-    let currentVolumeForSpike = 0;
-    let usingNMinusOne = false;
-    
-    // Asumsi: Intraday adalah interval yang mengandung 'm' (menit) atau 'h' (jam)
-    const isIntraday = interval.includes('m') || interval.includes('h'); 
+    // --- STRATEGI N-1 PERMANEN ---
+    // Potong candle terakhir (N). stableHistory = data 0 hingga N-1.
+    const stableHistory = historyData.slice(0, historyData.length - 1);
+    const usingNMinusOne = true; // Selalu N-1
 
-    if (isIntraday) {
-        // Pengecekan menit hanya relevan untuk intraday (candle berjalan)
-        const lastDate = new Date(latestCandle.timestamp);
-        const lastMinute = lastDate.getUTCMinutes();
-        
-        if (lastMinute !== 0) {
-            // Menit tidak 00. Gunakan N-1 untuk kalkulasi.
-            stableHistory = historyData.slice(0, historyData.length - 1);
-            currentVolumeForSpike = stableHistory[stableHistory.length - 1].volume; // Volume N-1
-            usingNMinusOne = true;
-        } else {
-            // Menit tepat 00. Gunakan data sampai candle terakhir (N).
-            stableHistory = historyData;
-            currentVolumeForSpike = latestCandle.volume; // Volume N
-            usingNMinusOne = false;
-        }
-    } else {
-        // Interval '1d' (Harian). Selalu gunakan candle N karena data dianggap tertutup.
-        stableHistory = historyData;
-        currentVolumeForSpike = latestCandle.volume; // Volume N
-        usingNMinusOne = false;
-    }
-
-    // --- PERHITUNGAN ---
     const PERIOD = 16;
     if (stableHistory.length > PERIOD) {
         const volumeArray = stableHistory.map(d => d.volume);
 
-        // 1. Hitung Volatilitas (Berdasarkan data yang sudah diputuskan stabil)
+        // Candle yang digunakan untuk perbandingan adalah candle terakhir dari stableHistory (yaitu N-1)
+        const currentVolumeForSpike = volumeArray[volumeArray.length - 1]; 
+        
+        // 1. Hitung Volatilitas 
         volatilityRatio = calculateVolatilityRatio(stableHistory, PERIOD);
 
-        // 2. Hitung MA Volume (Menggunakan data historis dari stableHistory)
+        // 2. Hitung MA Volume
         const maVolume16 = calculateMAVolume(volumeArray, PERIOD);
         
         // 3. Hitung Spike Ratio
@@ -92,9 +68,8 @@ module.exports = async (req, res) => {
       ticker: formattedTicker,
       volSpikeRatio: volSpikeRatio,     
       volatilityRatio: volatilityRatio, 
-      lastDayData: latestCandle, // Selalu kembalikan harga running terakhir ke spreadsheet
+      lastDayData: latestCandle, // Harga selalu terbaru (N)
       timestampInfo: {
-          lastMinute: isIntraday ? new Date(latestCandle.timestamp).getUTCMinutes() : 'N/A',
           usingNMinusOne: usingNMinusOne
       }
     });
