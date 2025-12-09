@@ -64,6 +64,7 @@ module.exports = async (req, res) => {
         const rawTime = timestamp[i];
         const dateObj = new Date(rawTime * 1000);
         const isMinuteZero = dateObj.getUTCMinutes() === 0; 
+        console.log(`getUTCMinutes : ${dateObj.getUTCMinutes()}`);
         // C. Gabungkan kedua syarat
         return isValidPrice && isMinuteZero;
     });
