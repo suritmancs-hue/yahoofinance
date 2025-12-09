@@ -6,7 +6,7 @@ const {
 } = require('../stockAnalysis'); 
 
 // --- Konstanta UTC+8 ---
-const UTC_OFFSET_SECONDS = 8 * 60 * 60; // 8 jam * 60 menit * 60 detik = 28800 detik
+const UTC_OFFSET_SECONDS = 0 * 60 * 60; // 8 jam * 60 menit * 60 detik = 28800 detik
 
 // --- Fungsi Helper untuk Konversi Timestamp ke String (Dibutuhkan di Vercel) ---
 /**
