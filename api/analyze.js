@@ -28,10 +28,16 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Parameter ticker diperlukan.' });
   }
 
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
+  const baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`;
+  const urlObj = new URL(baseUrl);
+  urlObj.searchParams.append('interval', interval); // Otomatis menangani karakter & dan ?
+  urlObj.searchParams.append('range', range);
+
+  //Konversi kembali ke string untuk fetch
+  const finalUrl = urlObj.toString();
 
   try {
-    const apiResponse = await fetch(url);
+    const apiResponse = await fetch(finalUrl);
     const data = await apiResponse.json();
     const result = data?.chart?.result?.[0];
 
