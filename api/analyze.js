@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
     const result = data?.chart?.result?.[0];
 
     if (!result || !result.indicators.quote[0].close) {
-      return res.status(404).json({ status: `Data tidak ditemukan untuk ticker ${formattedTicker}.` });
+      return res.status(404).json({ status: `Data tidak ditemukan untuk ticker ${ticker}.` });
     }
 
     const indicators = result.indicators.quote[0];
@@ -77,7 +77,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json({
       status: "Sukses",
-      ticker: formattedTicker,
+      ticker: ticker,
       volSpikeRatio: parseFloat(volSpikeRatio.toFixed(3)),      
       volatilityRatio: parseFloat(volatilityRatio.toFixed(3)), 
       lastData: latestCandle, 
