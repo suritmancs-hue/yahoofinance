@@ -14,7 +14,7 @@ function calculateAverage(dataArray) {
  */
 function calculateMAVolume(volumeArray, period) {
   
-  const historicalOnly = volumeArray.slice(0, volumeArray.length - 1); 
+  const historicalOnly = volumeArray.slice(0, volumeArray.length); 
   
   if (historicalOnly.length < period) return 0;
   
@@ -27,7 +27,7 @@ function calculateMAVolume(volumeArray, period) {
  */
 function calculateVolatilityRatio(historicalDataArray, period) {
   
-  const historicalOnly = historicalDataArray.slice(0, historicalDataArray.length - 1);
+  const historicalOnly = historicalDataArray.slice(0, historicalDataArray.length);
   
   if (historicalOnly.length < period) return 0;
   
