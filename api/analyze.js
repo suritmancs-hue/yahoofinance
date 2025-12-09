@@ -63,10 +63,19 @@ module.exports = async (req, res) => {
         // B. Cek apakah Menit == 00
         const rawTime = timestamp[i];
         const dateObj = new Date(rawTime * 1000);
-        const isMinuteZero = dateObj.getUTCMinutes() === 0; 
-        console.log(`getUTCMinutes : ${dateObj.getUTCMinutes()}`);
-        // C. Gabungkan kedua syarat
+        const minute = dateObj.getUTCMinutes()
+        const isMinuteZero = minute === 0; 
+
+        if (!isMinuteZero) {
+            console.log(`[SKIP] Time: ${d.timestamp} | Minute: ${minute} | Price: ${d.close}`);
+        } else {
+            // Opsional: Uncomment baris bawah untuk melihat data yang lolos
+            console.log(`[KEEP] Time: ${d.timestamp} | Minute: ${minute}`);
+        }
+
+        // D. Gabungkan syarat
         return isValidPrice && isMinuteZero;
+
     });
 
     let volSpikeRatio = 0;
