@@ -16,7 +16,7 @@ function convertUnixTimestampToUTC8String(unixTimestampSeconds) {
     // Manipulasi agar tampil seolah-olah UTC+8 di string GMT
     const adjustedTimestampSeconds = unixTimestampSeconds + UTC_OFFSET_SECONDS;
     const dateObject = new Date(adjustedTimestampSeconds * 1000);
-    return dateObject.toUTCString().replace('GMT', 'UTC+8'); // Opsional: Ganti label GMT agar tidak bingung
+    return dateObject.toUTCString().replace('GMT', 'WITA'); // Opsional: Ganti label GMT agar tidak bingung
 }
 
 module.exports = async (req, res) => {
