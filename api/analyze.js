@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
         const rawTime = timestamp[i];
         const dateObj = new Date(rawTime * 1000);
         const minute = dateObj.getUTCHours();
-        const isMinuteZero = minute !== 17 || minute !== 9; 
+        const isMinuteZero = minute !== 9; 
         // C. Gabungkan syarat
         return isValidPrice && isMinuteZero;
 
