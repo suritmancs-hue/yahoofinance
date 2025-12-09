@@ -51,13 +51,22 @@ module.exports = async (req, res) => {
 
     // Filter data yang valid saja (kadang Yahoo memberikan null di tengah data)
     const historyData = timestamp.map((ts, i) => ({
-      timestamp: convertUnixTimestampToUTC8String(ts), 
-      open: indicators.open[i],
-      high: indicators.high[i],
-      low: indicators.low[i],
-      close: indicators.close[i],
-      volume: indicators.volume[i] || 0 
-    })).filter(d => typeof d.close === 'number' && !isNaN(d.close));
+        timestamp: convertUnixTimestampToUTC8String(ts), 
+        open: indicators.open[i],
+        high: indicators.high[i],
+        low: indicators.low[i],
+        close: indicators.close[i],
+        volume: indicators.volume[i] || 0 
+    })).filter((d, i) => {
+        // A. Cek apakah harga valid
+        const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
+        // B. Cek apakah Menit == 00
+        const rawTime = timestamp[i];
+        const dateObj = new Date(rawTime * 1000);
+        const isMinuteZero = dateObj.getUTCMinutes() === 0; 
+        // C. Gabungkan kedua syarat
+        return isValidPrice && isMinuteZero;
+    });
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
