@@ -68,7 +68,7 @@ module.exports = async (req, res) => {
     let volatilityRatio = 0;
     const latestCandle = historyData[historyData.length - 1]; // Candle N (Hanya untuk harga/timestamp terbaru)
 
-    console.log(`latestCandle (raw): ${JSON.stringify(latestCandle)}`);
+    console.log(`historyData (raw): ${JSON.stringify(historyData)}`);
     
     // --- STRATEGI N-1 PERMANEN ---
     // Potong candle terakhir (N). stableHistory = data 0 hingga N-1.
