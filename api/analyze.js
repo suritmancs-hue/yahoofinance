@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
       volume: indicators.volume[i] || 0
     })).filter(d => d.close !== null);
 
-    console.log(`historyData : ${historyData}`);
+    console.log(`historyData JSON: ${JSON.stringify(historyData, null, 2)}`);
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
