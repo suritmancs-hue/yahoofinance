@@ -65,6 +65,8 @@ module.exports = async (req, res) => {
       volume: indicators.volume[i] || 0
     })).filter(d => d.close !== null);
 
+    console.log(`historyData : ${historyData}`);
+
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
     const latestCandle = historyData[historyData.length - 1]; 
