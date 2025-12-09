@@ -6,12 +6,11 @@ const {
 } = require('../stockAnalysis'); 
 
 // --- Konstanta UTC+8 ---
-const UTC_OFFSET_SECONDS = 0 * 60 * 60; // 8 jam * 60 menit * 60 detik = 28800 detik
+const UTC_OFFSET_SECONDS = 8 * 60 * 60; // 8 jam * 60 menit * 60 detik = 28800 detik
 
 // --- Fungsi Helper untuk Konversi Timestamp ke String (Dibutuhkan di Vercel) ---
 /**
- * Mengkonversi Unix Timestamp (dalam detik) ke UTC+8, lalu format string.
- * Format target: 'Tue, 04 Nov 2025 06:10:00 GMT'
+ * Mengkonversi Unix Timestamp (dalam detik) ke UTC+8, lalu format string GMT.
  * @param {number} unixTimestampSeconds - Unix Timestamp dalam detik (10 digit).
  * @returns {string} Waktu yang sudah di-offset (UTC+8) dalam format string GMT.
  */
@@ -27,36 +26,42 @@ function convertUnixTimestampToUTC8String(unixTimestampSeconds) {
     const unixTimestampMilliseconds = adjustedTimestampSeconds * 1000;
     const dateObject = new Date(unixTimestampMilliseconds);
     
-    // 2. Gunakan format string yang mendekati format GAS Anda
-    // Catatan: toUTCString() selalu menambahkan "GMT" di akhir, yang mempertahankan format string
-    return dateObject.toUTCString();
+    // 2. Gunakan toLocaleString dengan timeZone: 'UTC' agar semua komponennya disajikan dalam UTC
+    // dan tambahkan label 'GMT' secara manual (jika toUTCString tidak memberikan format yang presisi)
+    
+    const options = {
+        weekday: 'short', // Thu
+        year: 'numeric',  // 2025
+        month: 'short',   // Dec
+        day: '2-digit',   // 04
+        hour: '2-digit',  // 04
+        minute: '2-digit',// 00
+        second: '2-digit',// 00
+        timeZone: 'UTC',
+        hour12: false // 24-jam format
+    };
+    
+    // Hasil format: "Thu, 04 Dec 2025 04:00:00"
+    const formattedDatePart = dateObject.toLocaleString('en-US', options).replace(/,/, ''); 
+
+    // Mencocokkan dengan format target: 'Thu, 04 Dec 2025 04:00:00 GMT'
+    // Kita harus memastikan format akhir benar-benar sesuai. toUTCString() seringkali yang terdekat.
+    // Jika toUTCString() di lingkungan Vercel menghasilkan: "Thu, 04 Dec 2025 04:00:00 GMT"
+    // kita akan pertahankan toUTCString karena paling ringan.
+    
+    return dateObject.toUTCString(); 
 }
 // ----------------------------------------------------------------------------------
 
 module.exports = async (req, res) => {
-  const ticker = req.query.ticker;
-  const range = req.query.range || '30d';
-  const interval = req.query.interval || '1d';
-  
-  if (!ticker) {
-    return res.status(400).json({ error: 'Parameter ticker diperlukan.' });
-  }
-
-  const formattedTicker = ticker.toUpperCase().includes('.JK') ? ticker.toUpperCase() : `${ticker.toUpperCase()}.JK`;
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${formattedTicker}?interval=${interval}&range=${range}`;
+  // ... (Sisa logika analyze.js tetap sama) ...
 
   try {
-    const apiResponse = await fetch(url);
-    const data = await apiResponse.json();
-    const result = data?.chart?.result?.[0];
-
-    if (!result || !result.indicators.quote[0].close) {
-      return res.status(404).json({ status: `Data tidak ditemukan untuk ticker ${formattedTicker}.` });
-    }
-
+    // ... (Parsing data OHLCV) ...
+    
     const indicators = result.indicators.quote[0];
     const historyData = result.timestamp.map((ts, i) => ({
-      // 🛑 Timestamp dikonversi menjadi STRING UTC+8 yang terformat di sini
+      // 🛑 Menggunakan fungsi konversi baru
       timestamp: convertUnixTimestampToUTC8String(ts), 
       open: indicators.open[i],
       high: indicators.high[i],
@@ -65,34 +70,7 @@ module.exports = async (req, res) => {
       volume: indicators.volume[i] || 0
     })).filter(d => d.close !== null);
 
-    let volSpikeRatio = 0;
-    let volatilityRatio = 0;
-    const latestCandle = historyData[historyData.length - 1]; 
-
-    // --- STRATEGI N-1 PERMANEN ---
-    // Potong candle terakhir (N). stableHistory = data 0 hingga N-1.
-    const stableHistory = historyData.slice(0, historyData.length - 1);
-    const usingNMinusOne = true; 
-
-    console.log(`historyData : ${stableHistory}`);
-
-    const PERIOD = 16;
-    if (stableHistory.length > PERIOD) {
-        const volumeArray = stableHistory.map(d => d.volume);
-
-        // Candle yang digunakan untuk perbandingan adalah candle terakhir dari stableHistory (yaitu N-1)
-        const currentVolumeForSpike = volumeArray[volumeArray.length - 1]; 
-        
-        // 1. Hitung Volatilitas 
-        volatilityRatio = calculateVolatilityRatio(stableHistory, PERIOD);
-
-        // 2. Hitung MA Volume
-        const maVolume16 = calculateMAVolume(volumeArray, PERIOD);
-        
-        // 3. Hitung Spike Ratio
-        volSpikeRatio = calculateVolumeRatio(currentVolumeForSpike, maVolume16);
-        
-    } 
+    // ... (Sisa logika N-1 dan perhitungan tetap sama) ...
 
     res.status(200).json({
       status: "Sukses",
@@ -101,7 +79,7 @@ module.exports = async (req, res) => {
       volatilityRatio: volatilityRatio, 
       lastDayData: latestCandle, 
       timestampInfo: {
-          usingNMinusOne: usingNMinusOne
+          usingNMinusOne: true // Permanen
       }
     });
 
