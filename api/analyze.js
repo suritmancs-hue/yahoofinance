@@ -57,18 +57,15 @@ module.exports = async (req, res) => {
         low: indicators.low[i],
         close: indicators.close[i],
         volume: indicators.volume[i] || 0 
-    })).filter((d) => {
+    })).filter((d, i) => {
         // A. Cek apakah harga valid
-        if (typeof d.close !== 'number' || isNaN(d.close)) return false;
+        const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
         // B. Cek apakah Menit == 00
         const timeStr = d.timestamp;
-        const isTopOfTheHour = timeStr.includes(":00:00");
-      
-        const isJam17 = timeStr.includes("17:00:00");
-        const isJam09 = timeStr.includes("09:00:00");
-      
+        const isMinuteZero = timeStr.includes(":00:00");
+    
         // C. Gabungkan syarat
-        return isTopOfTheHour && !isJam17 && !isJam09;
+        return isValidPrice && isMinuteZero;
 
     });
 
