@@ -65,8 +65,6 @@ module.exports = async (req, res) => {
       volume: indicators.volume[i] || 0
     })).filter(d => d.close !== null);
 
-    console.log(`historyData JSON: ${JSON.stringify(historyData, null, 2)}`);
-
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
     const latestCandle = historyData[historyData.length - 1]; 
@@ -75,6 +73,8 @@ module.exports = async (req, res) => {
     // Potong candle terakhir (N). stableHistory = data 0 hingga N-1.
     const stableHistory = historyData.slice(0, historyData.length - 1);
     const usingNMinusOne = true; 
+
+    console.log(`historyData : ${stableHistory}`);
 
     const PERIOD = 16;
     if (stableHistory.length > PERIOD) {
