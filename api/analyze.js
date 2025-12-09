@@ -6,35 +6,22 @@ const {
 } = require('../stockAnalysis'); 
 
 // --- Konstanta UTC+8 ---
-const UTC_OFFSET_SECONDS = 8 * 60 * 60; // 8 jam * 60 menit * 60 detik = 28800 detik
+const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
 
-// --- Fungsi Helper untuk Konversi Timestamp ke String (Dibutuhkan di Vercel) ---
-/**
- * Mengkonversi Unix Timestamp (dalam detik) ke UTC+8, lalu format string GMT.
- * Format target: 'Thu, 04 Dec 2025 04:00:00 GMT'
- * @param {number} unixTimestampSeconds - Unix Timestamp dalam detik (10 digit).
- * @returns {string} Waktu yang sudah di-offset (UTC+8) dalam format string GMT.
- */
+// --- Fungsi Helper Timestamp ---
 function convertUnixTimestampToUTC8String(unixTimestampSeconds) {
     if (typeof unixTimestampSeconds !== 'number' || unixTimestampSeconds <= 0) {
         return '';
     }
-    
-    // 1. Tambahkan Offset 8 Jam ke Timestamp (dalam detik)
+    // Manipulasi agar tampil seolah-olah UTC+8 di string GMT
     const adjustedTimestampSeconds = unixTimestampSeconds + UTC_OFFSET_SECONDS;
-
-    // Konversi ke milidetik (13 digit)
-    const unixTimestampMilliseconds = adjustedTimestampSeconds * 1000;
-    const dateObject = new Date(unixTimestampMilliseconds);
-    
-    // 2. Gunakan toUTCString() yang menghasilkan format string yang diinginkan dengan label GMT di akhir.
-    return dateObject.toUTCString(); 
+    const dateObject = new Date(adjustedTimestampSeconds * 1000);
+    return dateObject.toUTCString().replace('GMT', 'UTC+8'); // Opsional: Ganti label GMT agar tidak bingung
 }
-// ----------------------------------------------------------------------------------
 
 module.exports = async (req, res) => {
   const ticker = req.query.ticker;
-  const range = req.query.range || '30d';
+  const range = req.query.range || '30d'; // Pastikan range cukup panjang untuk PERIOD 16
   const interval = req.query.interval || '1d';
   
   if (!ticker) {
@@ -54,56 +41,62 @@ module.exports = async (req, res) => {
     }
 
     const indicators = result.indicators.quote[0];
-    const historyData = result.timestamp.map((ts, i) => ({
-      // Timestamp dikonversi menjadi STRING UTC+8 yang terformat
+    const timestamp = result.timestamp;
+
+    // Filter data yang valid saja (kadang Yahoo memberikan null di tengah data)
+    const historyData = timestamp.map((ts, i) => ({
       timestamp: convertUnixTimestampToUTC8String(ts), 
       open: indicators.open[i],
       high: indicators.high[i],
       low: indicators.low[i],
       close: indicators.close[i],
-      volume: indicators.volume[i] || 0 // Fallback ke 0
-    })).filter(d => d.close !== null);
+      volume: indicators.volume[i] || 0 
+    })).filter(d => d.close !== null && d.close !== undefined);
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
-    const latestCandle = historyData[historyData.length];
 
-    //console.log(`historyData (raw): ${JSON.stringify(historyData)}`);
+    // PERBAIKAN 1: Ambil candle terakhir dengan index -1
+    const latestCandle = historyData[historyData.length - 1]; 
 
-    const stableHistory = historyData.slice(0, historyData.length);
-    const usingNMinusOne = true; 
+    // console.log(`Last Data Check:`, latestCandle);
 
     const PERIOD = 16;
-    if (stableHistory.length > PERIOD) {
-        const volumeArray = stableHistory.map(d => d.volume);
-
-        // Candle yang digunakan untuk perbandingan adalah candle terakhir
-        const currentVolumeForSpike = volumeArray[volumeArray.length]; 
+    
+    // Pastikan data cukup (Period + 1 candle hari ini)
+    if (historyData.length > PERIOD) {
         
-        // 1. Hitung Volatilitas 
-        volatilityRatio = calculateVolatilityRatio(stableHistory, PERIOD);
+        // 1. Hitung Volatilitas (Menggunakan data array object langsung)
+        // Fungsi ini di stockAnalysis memotong candle terakhir, jadi aman kirim historyData full
+        volatilityRatio = calculateVolatilityRatio(historyData, PERIOD);
 
         // 2. Hitung MA Volume
+        const volumeArray = historyData.map(d => d.volume);
+        
+        // Fungsi ini di stockAnalysis memotong candle terakhir (current), menghitung rata-rata N sebelumnya
         const maVolume16 = calculateMAVolume(volumeArray, PERIOD);
         
         // 3. Hitung Spike Ratio
-        volSpikeRatio = calculateVolumeRatio(currentVolumeForSpike, maVolume16);
+        // PERBAIKAN 2: Ambil volume terakhir dengan index yang benar
+        const currentVolumeForSpike = volumeArray[volumeArray.length - 1]; 
         
+        volSpikeRatio = calculateVolumeRatio(currentVolumeForSpike, maVolume16);
     } 
 
     res.status(200).json({
       status: "Sukses",
       ticker: formattedTicker,
-      volSpikeRatio: volSpikeRatio,     
-      volatilityRatio: volatilityRatio, 
+      volSpikeRatio: parseFloat(volSpikeRatio.toFixed(2)),      
+      volatilityRatio: parseFloat(volatilityRatio.toFixed(2)), 
       lastDayData: latestCandle, 
       timestampInfo: {
-          usingNMinusOne: usingNMinusOne
+          note: "Timestamp displayed is converted to UTC+8",
+          serverTime: new Date().toISOString()
       }
     });
 
   } catch (error) {
     console.error("Vercel Error:", error);
-    res.status(500).json({ error: 'Gagal memproses data.' });
+    res.status(500).json({ error: 'Gagal memproses data.', details: error.message });
   }
 };
