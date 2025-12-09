@@ -5,30 +5,31 @@ const {
   calculateVolatilityRatio 
 } = require('../stockAnalysis'); 
 
+// --- Konstanta UTC+8 ---
+const UTC_OFFSET_SECONDS = 8 * 60 * 60; // 8 jam * 60 menit * 60 detik = 28800 detik
+
 // --- Fungsi Helper untuk Konversi Timestamp ke String (Dibutuhkan di Vercel) ---
 /**
- * Mengkonversi Unix Timestamp (dalam detik) menjadi string waktu UTC yang terformat.
+ * Mengkonversi Unix Timestamp (dalam detik) ke UTC+8, lalu format string.
+ * Format target: 'Tue, 04 Nov 2025 06:10:00 GMT'
  * @param {number} unixTimestampSeconds - Unix Timestamp dalam detik (10 digit).
- * @returns {string} Waktu dalam format UTC.
+ * @returns {string} Waktu yang sudah di-offset (UTC+8) dalam format string GMT.
  */
-function convertUnixTimestampToUTCString(unixTimestampSeconds) {
+function convertUnixTimestampToUTC8String(unixTimestampSeconds) {
     if (typeof unixTimestampSeconds !== 'number' || unixTimestampSeconds <= 0) {
         return '';
     }
-    const unixTimestampMilliseconds = unixTimestampSeconds * 1000;
+    
+    // 1. Tambahkan Offset 8 Jam ke Timestamp (dalam detik)
+    const adjustedTimestampSeconds = unixTimestampSeconds + UTC_OFFSET_SECONDS;
+
+    // Konversi ke milidetik (13 digit)
+    const unixTimestampMilliseconds = adjustedTimestampSeconds * 1000;
     const dateObject = new Date(unixTimestampMilliseconds);
     
-    // Menggunakan toLocaleString dengan UTC timezone untuk format yang konsisten dan mudah dibaca
-    return dateObject.toLocaleString('en-US', { 
-        timeZone: 'UTC', 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit', 
-        hour12: false 
-    });
+    // 2. Gunakan format string yang mendekati format GAS Anda
+    // Catatan: toUTCString() selalu menambahkan "GMT" di akhir, yang mempertahankan format string
+    return dateObject.toUTCString();
 }
 // ----------------------------------------------------------------------------------
 
@@ -55,18 +56,18 @@ module.exports = async (req, res) => {
 
     const indicators = result.indicators.quote[0];
     const historyData = result.timestamp.map((ts, i) => ({
-      // 🛑 Timestamp dikonversi menjadi STRING UTC yang terformat di sini
-      timestamp: convertUnixTimestampToUTCString(ts), 
+      // 🛑 Timestamp dikonversi menjadi STRING UTC+8 yang terformat di sini
+      timestamp: convertUnixTimestampToUTC8String(ts), 
       open: indicators.open[i],
       high: indicators.high[i],
       low: indicators.low[i],
       close: indicators.close[i],
-      volume: indicators.volume[i] || 0 // Fallback ke 0
+      volume: indicators.volume[i] || 0
     })).filter(d => d.close !== null);
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
-    const latestCandle = historyData[historyData.length - 1]; // Candle N
+    const latestCandle = historyData[historyData.length - 1]; 
 
     // --- STRATEGI N-1 PERMANEN ---
     // Potong candle terakhir (N). stableHistory = data 0 hingga N-1.
@@ -89,16 +90,14 @@ module.exports = async (req, res) => {
         // 3. Hitung Spike Ratio
         volSpikeRatio = calculateVolumeRatio(currentVolumeForSpike, maVolume16);
         
-    } else {
-        // Jika data tidak cukup, kembalikan 0 dan gunakan latestCandle
-    }
+    } 
 
     res.status(200).json({
       status: "Sukses",
       ticker: formattedTicker,
       volSpikeRatio: volSpikeRatio,     
       volatilityRatio: volatilityRatio, 
-      lastDayData: latestCandle, // Harga terbaru (N) dengan timestamp string
+      lastDayData: latestCandle, 
       timestampInfo: {
           usingNMinusOne: usingNMinusOne
       }
