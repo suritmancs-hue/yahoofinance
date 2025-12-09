@@ -5,6 +5,33 @@ const {
   calculateVolatilityRatio 
 } = require('../stockAnalysis'); 
 
+// --- Fungsi Helper untuk Konversi Timestamp ke String (Dibutuhkan di Vercel) ---
+/**
+ * Mengkonversi Unix Timestamp (dalam detik) menjadi string waktu UTC yang terformat.
+ * @param {number} unixTimestampSeconds - Unix Timestamp dalam detik (10 digit).
+ * @returns {string} Waktu dalam format UTC.
+ */
+function convertUnixTimestampToUTCString(unixTimestampSeconds) {
+    if (typeof unixTimestampSeconds !== 'number' || unixTimestampSeconds <= 0) {
+        return '';
+    }
+    const unixTimestampMilliseconds = unixTimestampSeconds * 1000;
+    const dateObject = new Date(unixTimestampMilliseconds);
+    
+    // Menggunakan toLocaleString dengan UTC timezone untuk format yang konsisten dan mudah dibaca
+    return dateObject.toLocaleString('en-US', { 
+        timeZone: 'UTC', 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: false 
+    });
+}
+// ----------------------------------------------------------------------------------
+
 module.exports = async (req, res) => {
   const ticker = req.query.ticker;
   const range = req.query.range || '30d';
@@ -28,22 +55,23 @@ module.exports = async (req, res) => {
 
     const indicators = result.indicators.quote[0];
     const historyData = result.timestamp.map((ts, i) => ({
-      timestamp: ts * 1000,
+      // 🛑 Timestamp dikonversi menjadi STRING UTC yang terformat di sini
+      timestamp: convertUnixTimestampToUTCString(ts), 
       open: indicators.open[i],
       high: indicators.high[i],
       low: indicators.low[i],
       close: indicators.close[i],
-      volume: indicators.volume[i] || 0
+      volume: indicators.volume[i] || 0 // Fallback ke 0
     })).filter(d => d.close !== null);
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
-    const latestCandle = historyData[historyData.length - 1]; // Tetap ambil N untuk info harga
+    const latestCandle = historyData[historyData.length - 1]; // Candle N
 
     // --- STRATEGI N-1 PERMANEN ---
     // Potong candle terakhir (N). stableHistory = data 0 hingga N-1.
     const stableHistory = historyData.slice(0, historyData.length - 1);
-    const usingNMinusOne = true; // Selalu N-1
+    const usingNMinusOne = true; 
 
     const PERIOD = 16;
     if (stableHistory.length > PERIOD) {
@@ -61,6 +89,8 @@ module.exports = async (req, res) => {
         // 3. Hitung Spike Ratio
         volSpikeRatio = calculateVolumeRatio(currentVolumeForSpike, maVolume16);
         
+    } else {
+        // Jika data tidak cukup, kembalikan 0 dan gunakan latestCandle
     }
 
     res.status(200).json({
@@ -68,7 +98,7 @@ module.exports = async (req, res) => {
       ticker: formattedTicker,
       volSpikeRatio: volSpikeRatio,     
       volatilityRatio: volatilityRatio, 
-      lastDayData: latestCandle, // Harga selalu terbaru (N)
+      lastDayData: latestCandle, // Harga terbaru (N) dengan timestamp string
       timestampInfo: {
           usingNMinusOne: usingNMinusOne
       }
