@@ -86,8 +86,8 @@ module.exports = async (req, res) => {
     res.status(200).json({
       status: "Sukses",
       ticker: formattedTicker,
-      volSpikeRatio: parseFloat(volSpikeRatio.toFixed(2)),      
-      volatilityRatio: parseFloat(volatilityRatio.toFixed(2)), 
+      volSpikeRatio: parseFloat(volSpikeRatio.toFixed(3)),      
+      volatilityRatio: parseFloat(volatilityRatio.toFixed(3)), 
       lastDayData: latestCandle, 
       timestampInfo: {
           note: "Timestamp displayed is converted to UTC+8",
