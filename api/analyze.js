@@ -63,7 +63,7 @@ module.exports = async (req, res) => {
         // B. Cek apakah Menit == 00
         const rawTime = timestamp[i];
         const dateObj = new Date(rawTime * 1000);
-        const minute = dateObj.getUTCMinutes()
+        const minute = dateObj.getUTCMinutes();
         const isMinuteZero = minute === 0; 
 
         if (!isMinuteZero) {
