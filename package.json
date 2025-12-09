@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "Serverless API for stock analysis calculations.",
   "main": "api/analyze.js",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
-    "start": "node api/analyze.js" 
+    "start": "node api/analyze.js"
   },
   "dependencies": {
-    "node-fetch": "^2.6.7" 
   }
 }
