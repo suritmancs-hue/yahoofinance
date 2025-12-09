@@ -66,21 +66,19 @@ module.exports = async (req, res) => {
 
     let volSpikeRatio = 0;
     let volatilityRatio = 0;
-    const latestCandle = historyData[historyData.length - 1]; // Candle N (Hanya untuk harga/timestamp terbaru)
+    const latestCandle = historyData[historyData.length];
 
-    console.log(`historyData (raw): ${JSON.stringify(historyData)}`);
-    
-    // --- STRATEGI N-1 PERMANEN ---
-    // Potong candle terakhir (N). stableHistory = data 0 hingga N-1.
-    const stableHistory = historyData.slice(0, historyData.length - 1);
+    //console.log(`historyData (raw): ${JSON.stringify(historyData)}`);
+
+    const stableHistory = historyData.slice(0, historyData.length);
     const usingNMinusOne = true; 
 
     const PERIOD = 16;
     if (stableHistory.length > PERIOD) {
         const volumeArray = stableHistory.map(d => d.volume);
 
-        // Candle yang digunakan untuk perbandingan adalah candle terakhir dari stableHistory (yaitu N-1)
-        const currentVolumeForSpike = volumeArray[volumeArray.length - 1]; 
+        // Candle yang digunakan untuk perbandingan adalah candle terakhir
+        const currentVolumeForSpike = volumeArray[volumeArray.length]; 
         
         // 1. Hitung Volatilitas 
         volatilityRatio = calculateVolatilityRatio(stableHistory, PERIOD);
