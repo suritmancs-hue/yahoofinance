@@ -66,7 +66,7 @@ async function processSingleTicker(ticker, interval, range) {
         let volatilityRatio = 0;
         let maxVol = 0;
         let cekVol = 0;
-        const PERIOD = 30;
+        const PERIOD = 25;
 
         if (historyData.length > PERIOD) {
             volatilityRatio = calculateVolatilityRatio(historyData, PERIOD);
