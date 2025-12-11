@@ -64,7 +64,9 @@ async function processSingleTicker(ticker, interval, range) {
         const latestCandle = historyData[historyData.length - 1];
         let volSpikeRatio = 0;
         let volatilityRatio = 0;
-        const PERIOD = 16;
+        let maxVol = 0;
+        let cekVol = 0;
+        const PERIOD = 30;
 
         if (historyData.length > PERIOD) {
             volatilityRatio = calculateVolatilityRatio(historyData, PERIOD);
@@ -75,7 +77,13 @@ async function processSingleTicker(ticker, interval, range) {
             
             const maVolume16 = calculateMAVolume(relevantVolume, PERIOD);
             const currentVolume = relevantVolume[relevantVolume.length - 1];
-            volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16);
+
+            const maxVol = Math.max(relevantVolume, PERIOD);
+            const cekVol = currentVolume / maxVol;
+            
+            if (cekVol < 3) { volSpikeRatio = 0 } else {
+              volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16);
+            }
         }
 
         return {
