@@ -75,14 +75,17 @@ async function processSingleTicker(ticker, interval, range) {
             const relevantHistory = historyData.slice(-(PERIOD + 1));
             const relevantVolume = relevantHistory.map(d => d.volume);
             
-            const maVolume16 = calculateMAVolume(relevantVolume, PERIOD);
+            const maVolume = calculateMAVolume(relevantVolume, PERIOD);
             const currentVolume = relevantVolume[relevantVolume.length - 1];
+            const historicalOnly = relevantVolume.slice(0, -1);
 
-            const maxVol = Math.max(relevantVolume, PERIOD);
-            const cekVol = currentVolume / maxVol;
+            const maxPrevVolume = Math.max(...historicalOnly);
+            const ratioVsMax = currentVolume / maxPrevVolume;
             
-            if (cekVol < 3) { volSpikeRatio = 0 } else {
-              volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume16);
+            if (ratioVsMax >= 3) {
+              volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume);
+            } else {
+              volSpikeRatio = 0;
             }
         }
 
