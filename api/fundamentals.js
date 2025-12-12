@@ -33,8 +33,6 @@ module.exports = async (req, res) => {
  */
 async function fetchFundamentalData(ticker) {
     try {
-        // Kita minta modul spesifik. Library ini otomatis handle crumb/cookie.
-        // modules: ['defaultKeyStatistics', 'summaryDetail', 'price']
         const result = await yahooFinance.quoteSummary(ticker, {
             modules: ['defaultKeyStatistics', 'summaryDetail', 'price']
         });
@@ -43,39 +41,41 @@ async function fetchFundamentalData(ticker) {
             return { ticker, status: "Not Found", note: "No Data" };
         }
 
-        // Ambil data dari hasil library (strukturnya sedikit lebih rapi dari JSON mentah)
         const stats = result.defaultKeyStatistics || {};
         const summary = result.summaryDetail || {};
         const price = result.price || {};
 
+        // Ambil Data Mentah (Raw) untuk perhitungan
+        const floatRaw = stats.floatShares || 0;
+        const outstandingRaw = stats.sharesOutstanding || 0;
+
+        // Hitung Persentase Float
+        let floatPercent = 0;
+        if (outstandingRaw > 0) {
+            floatPercent = (floatRaw / outstandingRaw) * 100;
+        }
+
         return {
             status: "Sukses",
             ticker: ticker,
-            
-            // Nama
             name: price.shortName || "-", 
             
-            // Float Shares (Library biasanya sudah memberi format angka/raw)
-            // Kita format manual biar rapi seperti "1.5B" jika perlu, 
-            // atau kirim raw value biar Excel yang format.
-            // Di sini kita kirim format text agar aman.
-            floatShares: formatNumber(stats.floatShares), 
-            
-            // Market Cap
+            // Data Teks (untuk tampilan cantik)
+            floatShares: formatNumber(floatRaw), 
             marketCap: formatNumber(summary.marketCap),
             
-            // Tambahan
-            sharesOutstanding: formatNumber(stats.sharesOutstanding),
-            avgVolume10D: formatNumber(summary.averageVolume10days)
+            // Data Mentah & Hasil Hitungan (untuk Logika)
+            floatRaw: floatRaw,
+            outstandingRaw: outstandingRaw,
+            floatPercent: floatPercent.toFixed(2) + "%" // Contoh: "35.50%"
         };
 
     } catch (error) {
-        // Library akan melempar error jika ticker salah atau Yahoo down
         return { ticker, status: "Error", note: error.message };
     }
 }
 
-// Helper sederhana untuk format angka (Mirip gaya Yahoo: 1.5B, 500M)
+// Helper format angka (Tetap sama)
 function formatNumber(num) {
     if (!num || isNaN(num)) return "-";
     if (num >= 1.0e+12) return (num / 1.0e+12).toFixed(2) + "T";
