@@ -1,5 +1,5 @@
 // api/fundamentals.js
-const yahooFinance = require('yahoo-finance2').default; // Import library
+const yahooFinance = require('yahoo-finance2').default; // Import library 
 
 module.exports = async (req, res) => {
     // 1. Validasi Method
