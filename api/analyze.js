@@ -85,7 +85,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const previousCandle = historyData[historyData.length - 2];
             const prevClose = previousCandle.close;
             const currentOpen = latestCandle.open;
-            gapValue = currentOpen - prevClose;
+            gapValue = currentOpen/prevClose;
         }
         
         let volSpikeRatio = 0;
