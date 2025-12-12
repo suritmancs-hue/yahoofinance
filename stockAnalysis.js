@@ -20,19 +20,28 @@ function calculateMAVolume(volumeArray, period) {
 }
 
 /**
- * Menghitung Rasio Volatilitas (Max/Min)..
+ *Menghitung Rasio Volatilitas (Max Body / Min Body) menggunakan Open dan Close (Body)
  */
 function calculateVolatilityRatio(historicalDataArray, period) {
   const historicalOnly = historicalDataArray.slice(0, -1);
   if (historicalOnly.length < period) return 0; 
   const relevantHistory = historicalOnly.slice(historicalOnly.length - period);
+  
   let maxPrice = -Infinity;
   let minPrice = Infinity;
   
-  for (const indeks of relevantHistory) {
-    if (indeks.high > maxPrice) maxPrice = indeks.close;
-    if (indeks.low < minPrice) minPrice = indeks.close;
+  for (const candle of relevantHistory) {
+    // Cari titik tertinggi dari Body (bisa Open atau Close tergantung candle hijau/merah)
+    const topBody = Math.max(candle.open, candle.close);
+    
+    // Cari titik terendah dari Body
+    const bottomBody = Math.min(candle.open, candle.close);
+
+    // Update Max dan Min periode
+    if (topBody > maxPrice) maxPrice = topBody;
+    if (bottomBody < minPrice) minPrice = bottomBody;
   }
+  
   return (minPrice === 0 || minPrice === Infinity) ? 1 : maxPrice / minPrice;
 }
 
