@@ -1,14 +1,15 @@
 {
   "name": "stock-analysis-vercel-api",
   "version": "1.0.0",
-  "description": "Serverless API for stock analysis calculations.",
+  "description": "Serverless API for stock analysis.",
   "main": "api/analyze.js",
   "engines": {
-    "node": "24.x"
+    "node": "18.x"
   },
   "scripts": {
     "start": "node api/analyze.js"
   },
   "dependencies": {
+    "yahoo-finance2": "^2.11.3"
   }
 }
