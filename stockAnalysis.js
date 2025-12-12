@@ -30,8 +30,8 @@ function calculateVolatilityRatio(historicalDataArray, period) {
   let minPrice = Infinity;
   
   for (const indeks of relevantHistory) {
-    if (indeks.high > maxPrice) maxPrice = indeks.high;
-    if (indeks.low < minPrice) minPrice = indeks.low;
+    if (indeks.high > maxPrice) maxPrice = indeks.close;
+    if (indeks.low < minPrice) minPrice = indeks.close;
   }
   return (minPrice === 0 || minPrice === Infinity) ? 1 : maxPrice / minPrice;
 }
