@@ -15,8 +15,9 @@ function convertTimestamp(unixSeconds) {
     return date.toUTCString().replace('GMT', 'WITA'); 
 }
 
-// --- LOGIC PEMROSESAN 1 TICKER (Dipisah jadi fungsi) ---
-async function processSingleTicker(ticker, interval, range) {
+// --- LOGIC PEMROSESAN 1 TICKER ---
+// Tambahkan parameter 'backday' (default 0 jika tidak diisi)
+async function processSingleTicker(ticker, interval, range, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
     const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`);
@@ -61,10 +62,27 @@ async function processSingleTicker(ticker, interval, range) {
 
         if (historyData.length === 0) return { ticker, status: "Not Found", message: "Filtered Empty" };
 
+        // --- FITUR BACKDAY (LOGIKA BARU) ---
+        // Jika backday diisi (misal: 2), kita buang 2 candle terakhir.
+        // Candle ke-3 dari belakang akan menjadi 'latestCandle' simulasi.
+        const backdayInt = parseInt(backday);
+        if (!isNaN(backdayInt) && backdayInt > 0) {
+            // Cek apakah sisa data cukup setelah dipotong
+            if (historyData.length <= backdayInt) {
+                 return { ticker, status: "Error", message: `Data kurang untuk backtest ${backdayInt} hari` };
+            }
+            // Buang N data terakhir
+            // splice(-N) menghapus N elemen dari belakang array
+            historyData.splice(-backdayInt);
+        }
+
+        // Ambil candle terakhir (setelah dipotong backday)
         const latestCandle = historyData[historyData.length - 1];
+        
         let volSpikeRatio = 0;
         let volatilityRatio = 0;
 
+        // Tentukan Period berdasarkan Interval
         const PERIOD = (interval === "1h") ? 25 : 15;
 
         if (historyData.length > PERIOD) {
@@ -79,12 +97,18 @@ async function processSingleTicker(ticker, interval, range) {
             const historicalOnly = relevantVolume.slice(0, -1);
 
             const maxPrevVolume = Math.max(...historicalOnly);
-            const ratioVsMax = currentVolume / maxPrevVolume;
             
-            if (ratioVsMax >= 1.5) {
-              volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume);
+            // Safety check
+            if (maxPrevVolume > 0) {
+                const ratioVsMax = currentVolume / maxPrevVolume;
+                // Ambang batas spike (1.5x)
+                if (ratioVsMax >= 1.5) {
+                    volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume);
+                } else {
+                    volSpikeRatio = 0;
+                }
             } else {
-              volSpikeRatio = 0;
+                volSpikeRatio = 0;
             }
         }
 
@@ -93,7 +117,9 @@ async function processSingleTicker(ticker, interval, range) {
             ticker,
             volSpikeRatio: Number(volSpikeRatio.toFixed(3)),
             volatilityRatio: Number(volatilityRatio.toFixed(3)),
-            lastData: latestCandle
+            lastData: latestCandle,
+            // Info tambahan untuk debugging (opsional)
+            backtestMode: backdayInt > 0 ? `Mundur ${backdayInt} periode` : "Live" 
         };
 
     } catch (error) {
@@ -103,19 +129,19 @@ async function processSingleTicker(ticker, interval, range) {
 
 // --- MAIN HANDLER ---
 module.exports = async (req, res) => {
-  // Mode BULK (POST) - Hemat Kuota GAS
+  // Mode BULK (POST)
   if (req.method === 'POST') {
       try {
           const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-          const { tickers, interval, range } = body;
+          // Ambil 'backday' dari body JSON
+          const { tickers, interval, range, backday } = body;
 
           if (!tickers || !Array.isArray(tickers)) {
               return res.status(400).json({ error: "Invalid body. 'tickers' array required." });
           }
 
-          // Proses PARALEL di sisi Server (Vercel)
-          // Vercel akan request ke Yahoo secara bersamaan untuk semua ticker di list
-          const promises = tickers.map(t => processSingleTicker(t, interval, range));
+          // Proses PARALEL (Pass backday ke fungsi)
+          const promises = tickers.map(t => processSingleTicker(t, interval, range, backday));
           const results = await Promise.all(promises);
 
           return res.status(200).json({ results });
@@ -123,10 +149,11 @@ module.exports = async (req, res) => {
           return res.status(500).json({ error: e.message });
       }
   } 
-  // Mode SINGLE (GET) - Untuk testing manual di browser
+  // Mode SINGLE (GET)
   else {
-      const { ticker, interval, range } = req.query;
-      const result = await processSingleTicker(ticker, interval, range);
+      // Ambil 'backday' dari URL Query
+      const { ticker, interval, range, backday } = req.query;
+      const result = await processSingleTicker(ticker, interval, range, backday);
       return res.status(result.status === "Error" ? 500 : 200).json(result);
   }
 };
