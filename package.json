@@ -4,7 +4,7 @@
   "description": "Serverless API for stock analysis.",
   "main": "api/analyze.js",
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "scripts": {
     "start": "node api/analyze.js"
