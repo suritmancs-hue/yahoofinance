@@ -78,6 +78,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         // Ambil candle terakhir (setelah dipotong backday)
         const latestCandle = historyData[historyData.length - 1];
+
+        // --- PERHITUNGAN GAP ---
+        let gapValue = 0;
+        if (historyData.length >= 2) {
+            const previousCandle = historyData[historyData.length - 2];
+            const prevClose = previousCandle.close;
+            const currentOpen = latestCandle.open;
+            gapValue = currentOpen - prevClose;
+        }
         
         let volSpikeRatio = 0;
         let volatilityRatio = 0;
@@ -118,7 +127,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volSpikeRatio: Number(volSpikeRatio.toFixed(3)),
             volatilityRatio: Number(volatilityRatio.toFixed(3)),
             lastData: latestCandle,
-            // Info tambahan untuk debugging (opsional)
+            gapValue: Number(gapValue.toFixed(4)),
             backtestMode: backdayInt > 0 ? `Mundur ${backdayInt} periode` : "Live" 
         };
 
