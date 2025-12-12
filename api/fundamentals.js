@@ -1,4 +1,5 @@
 // api/fundamentals.js
+const yahooFinance = require('yahoo-finance2').default; // Import library
 
 module.exports = async (req, res) => {
     // 1. Validasi Method
@@ -16,6 +17,7 @@ module.exports = async (req, res) => {
         }
 
         // 3. Proses Paralel
+        // Library yahoo-finance2 sudah handle queue, tapi kita tetap map untuk format custom
         const promises = tickers.map(t => fetchFundamentalData(t));
         const results = await Promise.all(promises);
 
@@ -27,84 +29,57 @@ module.exports = async (req, res) => {
 };
 
 /**
- * Fungsi Mengambil Data Fundamental dengan Header Anti-Bot
+ * Fungsi Fetch menggunakan yahoo-finance2
  */
 async function fetchFundamentalData(ticker) {
-    // TIPS: Gunakan query2.finance.yahoo.com kadang lebih jarang 401 dibanding query1
-    const url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=defaultKeyStatistics,summaryDetail,price`;
-
-    // HEADER LENGKAP UNTUK MENYAMAR SEBAGAI BROWSER
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0'
-    };
-
     try {
-        const response = await fetch(url, { headers });
-        
-        // Handle Error HTTP
-        if (!response.ok) {
-            // Jika 404/401, coba fallback ke query1 sekali lagi
-            if (response.status === 404 || response.status === 401) {
-                return retryQuery1(ticker, headers);
-            }
-            return { ticker, status: "Error", note: `Yahoo Error ${response.status}` };
-        }
-
-        const json = await response.json();
-        const result = json?.quoteSummary?.result?.[0];
+        // Kita minta modul spesifik. Library ini otomatis handle crumb/cookie.
+        // modules: ['defaultKeyStatistics', 'summaryDetail', 'price']
+        const result = await yahooFinance.quoteSummary(ticker, {
+            modules: ['defaultKeyStatistics', 'summaryDetail', 'price']
+        });
 
         if (!result) {
-            return { ticker, status: "Not Found", note: "No Data returned" };
+            return { ticker, status: "Not Found", note: "No Data" };
         }
 
-        return parseResult(ticker, result);
+        // Ambil data dari hasil library (strukturnya sedikit lebih rapi dari JSON mentah)
+        const stats = result.defaultKeyStatistics || {};
+        const summary = result.summaryDetail || {};
+        const price = result.price || {};
+
+        return {
+            status: "Sukses",
+            ticker: ticker,
+            
+            // Nama
+            name: price.shortName || "-", 
+            
+            // Float Shares (Library biasanya sudah memberi format angka/raw)
+            // Kita format manual biar rapi seperti "1.5B" jika perlu, 
+            // atau kirim raw value biar Excel yang format.
+            // Di sini kita kirim format text agar aman.
+            floatShares: formatNumber(stats.floatShares), 
+            
+            // Market Cap
+            marketCap: formatNumber(summary.marketCap),
+            
+            // Tambahan
+            sharesOutstanding: formatNumber(stats.sharesOutstanding),
+            avgVolume10D: formatNumber(summary.averageVolume10days)
+        };
 
     } catch (error) {
+        // Library akan melempar error jika ticker salah atau Yahoo down
         return { ticker, status: "Error", note: error.message };
     }
 }
 
-// Fungsi Fallback jika query2 gagal
-async function retryQuery1(ticker, headers) {
-    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=defaultKeyStatistics,summaryDetail,price`;
-    try {
-        const response = await fetch(url, { headers });
-        if (!response.ok) return { ticker, status: "Error", note: `Yahoo Error ${response.status} (Retry)` };
-        
-        const json = await response.json();
-        const result = json?.quoteSummary?.result?.[0];
-        
-        if (!result) return { ticker, status: "Not Found", note: "No Data" };
-        
-        return parseResult(ticker, result);
-    } catch (e) {
-        return { ticker, status: "Error", note: e.message };
-    }
-}
-
-// Helper Parsing JSON
-function parseResult(ticker, result) {
-    const stats = result.defaultKeyStatistics || {};
-    const summary = result.summaryDetail || {};
-    const price = result.price || {};
-
-    return {
-        status: "Sukses",
-        ticker: ticker,
-        name: price.shortName || "-", 
-        floatShares: stats.floatShares?.fmt || "-", 
-        marketCap: summary.marketCap?.fmt || "-",
-        sharesOutstanding: stats.sharesOutstanding?.fmt || "-",
-        avgVolume10D: summary.averageVolume10days?.fmt || "-"
-    };
+// Helper sederhana untuk format angka (Mirip gaya Yahoo: 1.5B, 500M)
+function formatNumber(num) {
+    if (!num || isNaN(num)) return "-";
+    if (num >= 1.0e+12) return (num / 1.0e+12).toFixed(2) + "T";
+    if (num >= 1.0e+9) return (num / 1.0e+9).toFixed(2) + "B";
+    if (num >= 1.0e+6) return (num / 1.0e+6).toFixed(2) + "M";
+    return num.toString();
 }
