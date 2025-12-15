@@ -32,10 +32,10 @@ function calculateVolatilityRatio(historicalDataArray, period) {
   
   for (const candle of relevantHistory) {
     // Cari titik tertinggi dari Body (bisa Open atau Close tergantung candle hijau/merah)
-    const topBody = Math.max(candle.open, candle.close);
+    const topBody = Math.max(candle.high);    //Math.max(candle.open, candle.close);
     
     // Cari titik terendah dari Body
-    const bottomBody = Math.min(candle.open, candle.close);
+    const bottomBody = Math.min(candle.low);   //Math.min(candle.open, candle.close);
 
     // Update Max dan Min periode
     if (topBody > maxPrice) maxPrice = topBody;
