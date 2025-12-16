@@ -103,8 +103,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
        
         //Hitung
         if (historyData.length > MIN_REQUIRED_DATA) {
-            const relevantClose = historyData.map(d => d.close);
-            maxClose = calculateMaxClose(relevantClose, PERIOD);
+            const historyForMax = historyData.slice(0, -1);
+            maxClose = calculateMaxClose(historyForMax, PERIOD);
               
             const historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
