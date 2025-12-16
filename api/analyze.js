@@ -106,7 +106,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const historyForMax = historyData.slice(0, -1); //tidak termasuk candle tutup terakhir
             maxClose = calculateMaxClose(historyForMax, PERIOD);
               
-            const historyDataVolatil = historyData.slice(0, -OFFSET);
+            const historyDataVolatil = historyData.slice(0, -OFFSET -1);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
@@ -136,6 +136,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const maShort = calculateMAVolume(historyData, 3);
             const historyForLong = historyData.slice(0, -3);
             const maLong = calculateMAVolume(historyForLong, 10);
+
+            console.log(`maShort : ${maShort}`);
+            console.log(`maLong : ${maLong}`);
+          
             if (maLong > 0) {
                 avgVol = maShort / maLong;
             }  else {
