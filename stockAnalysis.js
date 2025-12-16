@@ -51,6 +51,16 @@ function calculateVolumeRatio(currentVolume, maVolume) {
   return currentVolume / maVolume;
 }
 
+/**
+ * Menghitung Max Price sebelumnya.
+ */
+function calculateMaxClose(historicalDataArray, period) {
+  if (historicalDataArray.length < period) return 0; 
+  const relevantHistory = historicalDataArray.slice(historicalDataArray.length - period);
+  const closes = relevantHistory.map(candle => candle.close);
+  return Math.max(...closes);
+}
+
 module.exports = {
   calculateMAVolume,
   calculateVolumeRatio,
