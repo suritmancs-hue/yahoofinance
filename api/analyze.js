@@ -110,14 +110,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
-            const relevantHistory = historyData.slice(-(PERIOD + 1), -1);
-            const relevantVolume = relevantHistory.map(d => d.volume);
-            
-            const maVolume = calculateMAVolume(relevantVolume, PERIOD);
-            const currentVolume = latestCandle.volume;
-            const historicalOnly = relevantVolume.slice(0, -1);
+            const allVolumes = historyData.map(d => d.volume);
+            const currentVolume = allVolumes[allVolumes.length - 1];
+            const historicalVolumes = allVolumes.slice(0, -1);
+            const maVolume = calculateMAVolume(historicalVolumes, PERIOD);
 
-            const maxPrevVolume = Math.max(...historicalOnly);
+            const relevantHistoricalVol = historicalVolumes.slice(-PERIOD);
+            const maxPrevVolume = Math.max(...relevantHistoricalVol);
             
             // Safety check
             if (maxPrevVolume > 0) {
@@ -133,10 +132,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             }
           
             // Hitung Average Volume antar MA3 dan MA10
-            const allVolumes = historyData.map(d => d.volume);
             const maShort = calculateMAVolume(allVolumes, 3);
-            const historyForLong = historyData.slice(0, -3);
-            const maLong = calculateMAVolume(historyForLong, 10);
+            const volumesForLong = allVolumes.slice(0, -3);
+            const maLong = calculateMAVolume(volumesForLong, 10)
           
             if (maLong > 0) {
                 avgVol = maShort / maLong;
@@ -149,9 +147,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         return {
             status: "Sukses",
             ticker,
-            volSpikeRatio: Number(volSpikeRatio.toFixed(3)),
-            avgVol: Number(avgVol.toFixed(3)),
-            volatilityRatio: Number(volatilityRatio.toFixed(3)),
+            volSpikeRatio: Number(volSpikeRatio.toFixed(4)),
+            avgVol: Number(avgVol.toFixed(4)),
+            volatilityRatio: Number(volatilityRatio.toFixed(4)),
             lastData: latestCandle,
             gapValue: Number(gapValue.toFixed(4)),
             maxClose: Number(maxClose.toFixed(2)),
