@@ -19,7 +19,7 @@ function calculateMAVolume(volumeArray, period) {
 }
 
 /**
- *Menghitung Rasio Volatilitas (Max Body / Min Body) menggunakan Open dan Close (Body)
+ *Menghitung Rasio Volatilitas
  */
 function calculateVolatilityRatio(historicalDataArray, period) {
   if (historicalDataArray.length < period) return 0; 
