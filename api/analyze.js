@@ -103,7 +103,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
        
         //Hitung
         if (historyData.length > MIN_REQUIRED_DATA) {
-            const historyForMax = historyData.slice(0, -1);
+            const historyForMax = historyData.slice(0, -2); //tidak termasuk candle barjalan dan candle tutup terakhir
             maxClose = calculateMaxClose(historyForMax, PERIOD);
               
             const historyDataVolatil = historyData.slice(0, -OFFSET);
