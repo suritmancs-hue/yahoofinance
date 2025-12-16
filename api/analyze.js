@@ -119,10 +119,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 if (ratioVsMax >= 1.5) {
                     volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume);
                 } else {
-                    volSpikeRatio = 321;
+                    volSpikeRatio = 0;
                 }
             } else {
-                volSpikeRatio = 123;
+                volSpikeRatio = 0;
             }
           
             // Hitung Average Volume antar MA3 dan MA10
