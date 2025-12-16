@@ -13,9 +13,8 @@ function calculateAverage(dataArray) {
  * Menghitung MA Volume.
  */
 function calculateMAVolume(volumeArray, period) {
-  const historicalOnly = volumeArray.slice(0, -1); 
-  if (historicalOnly.length < period) return 0;
-  const relevantVolume = historicalOnly.slice(historicalOnly.length - period);
+  if (volumeArray.length < period) return 0;
+  const relevantVolume = volumeArray.slice(volumeArray.length - period);
   return calculateAverage(relevantVolume);
 }
 
@@ -23,9 +22,8 @@ function calculateMAVolume(volumeArray, period) {
  *Menghitung Rasio Volatilitas (Max Body / Min Body) menggunakan Open dan Close (Body)
  */
 function calculateVolatilityRatio(historicalDataArray, period) {
-  const historicalOnly = historicalDataArray.slice(0, -1);
-  if (historicalOnly.length < period) return 0; 
-  const relevantHistory = historicalOnly.slice(historicalOnly.length - period);
+  if (historicalDataArray.length < period) return 0; 
+  const relevantHistory = historicalDataArray.slice(historicalDataArray.length - period);
   
   let maxPrice = -Infinity;
   let minPrice = Infinity;
