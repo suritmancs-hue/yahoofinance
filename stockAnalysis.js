@@ -62,7 +62,9 @@ function calculateMaxClose(historicalDataArray, period) {
 }
 
 module.exports = {
+  calculateAverage,
   calculateMAVolume,
   calculateVolumeRatio,
   calculateVolatilityRatio,
+  calculateMaxClose,
 };
