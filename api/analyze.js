@@ -1,10 +1,13 @@
 // analyze.js
 
 const { 
+  calculateAverage,
   calculateMAVolume, 
   calculateVolumeRatio, 
-  calculateVolatilityRatio 
+  calculateVolatilityRatio,
+  calculateMaxClose
 } = require('../stockAnalysis'); 
+
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
 const OFFSET = 2;
@@ -88,16 +91,21 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const currentOpen = latestCandle.open;
             gapValue = currentOpen/prevClose;
         }
+    
         
+        let maxClose = 0;
         let volSpikeRatio = 0;
         let avgVol = 0;
         let volatilityRatio = 0;
-
         // Tentukan Period berdasarkan Interval
         const PERIOD = (interval === "1h") ? 25 : 20;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 2;
-
+       
+        //Hitung
         if (historyData.length > MIN_REQUIRED_DATA) {
+            const relevantClose = historyData.map(d => d.close);
+            maxClose = calculateMaxClose(relevantClose, PERIOD);
+              
             const historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
             
@@ -142,6 +150,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volatilityRatio: Number(volatilityRatio.toFixed(3)),
             lastData: latestCandle,
             gapValue: Number(gapValue.toFixed(4)),
+            maxClose: Number(maxClose.toFixed(2)),
             backtestMode: backdayInt > 0 ? `Mundur ${backdayInt} periode` : "Live" 
         };
 
