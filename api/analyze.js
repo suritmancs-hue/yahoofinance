@@ -138,6 +138,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const maLong = calculateMAVolume(historyForLong, 10);
             if (maLong > 0) {
                 avgVol = maShort / maLong;
+            }  else {
+                avgVol = 100;
             }
           
         }
