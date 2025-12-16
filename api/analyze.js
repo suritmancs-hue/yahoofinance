@@ -95,9 +95,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         // Tentukan Period berdasarkan Interval
         const PERIOD = (interval === "1h") ? 25 : 20;
+        const MIN_REQUIRED_DATA = PERIOD + OFFSET + 2;
 
-        if (historyData.length > PERIOD) {
-            historyDataVolatil = historyData.splice(-OFFSET);
+        if (historyData.length > MIN_REQUIRED_DATA) {
+            historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
@@ -124,9 +125,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             }
           
             // Hitung Average Volume antar MA
-            sliceVol_1 = relevantVolume.slice(0, 4);
+            sliceVol_1 = relevantVolume.slice(0, 3);
             avgVol_1 = calculateMAVolume(sliceVol_1, 3);
-            sliceVol_2 = relevantVolume.slice(4, 4 + PERIOD);
+            sliceVol_2 = relevantVolume.slice(4, 5 + PERIOD);
             avgVol_2 = calculateMAVolume(sliceVol_2, PERIOD);
             avgVol = avgVol_1 / avgVol_2;
           
