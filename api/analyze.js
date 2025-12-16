@@ -133,17 +133,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             }
           
             // Hitung Average Volume antar MA3 dan MA10
-            const maShort = calculateMAVolume(historyData, 3);
-            const historyForLong = historyData.slice(0, -3);
+            const allVolumes = historyData.map(d => d.volume);
+            const maShort = calculateMAVolume(allVolumes, 3);
+            const historyForLong = allVolumes.slice(0, -3);
             const maLong = calculateMAVolume(historyForLong, 10);
-
-            console.log(`maShort : ${maShort}`);
-            console.log(`maLong : ${maLong}`);
           
             if (maLong > 0) {
                 avgVol = maShort / maLong;
             }  else {
-                avgVol = 100;
+                avgVol = 0;
             }
           
         }
