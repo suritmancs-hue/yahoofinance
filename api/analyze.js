@@ -56,7 +56,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const tsStr = convertTimestamp(timestamp[i]);
             
             // 2. Filter Menit :00 (String check)
-            if (!tsStr.includes(":00:00")) continue;
+            //if (!tsStr.includes(":00:00")) continue;
 
             historyData.push({
                 timestamp: tsStr,
@@ -82,11 +82,11 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         // Ambil candle terakhir (setelah dipotong backday)
         const latestCandle = historyData[historyData.length - 1];
+        const previousCandle = historyData[historyData.length - 2];
 
         // --- PERHITUNGAN GAP ---
         let gapValue = 0;
         if (historyData.length >= 2) {
-            const previousCandle = historyData[historyData.length - 2];
             const prevClose = previousCandle.close;
             const currentOpen = latestCandle.open;
             gapValue = currentOpen/prevClose;
@@ -133,8 +133,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             }
           
             // Hitung Average Volume antar MA3 dan MA10
-            const maShort = calculateMAVolume(historicalOnly, 3);
-            const historyForLong = historicalOnly.slice(0, -3);
+            const maShort = calculateMAVolume(historyData, 3);
+            const historyForLong = historyData.slice(0, -3);
             const maLong = calculateMAVolume(historyForLong, 10);
             if (maLong > 0) {
                 avgVol = maShort / maLong;
