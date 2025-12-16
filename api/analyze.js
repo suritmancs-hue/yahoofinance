@@ -115,6 +115,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const historicalVolumes = allVolumes.slice(0, -1);
             const maVolume = calculateMAVolume(historicalVolumes, PERIOD);
 
+            console.log(`historicalVolumes : ${historicalVolumes}`);
             console.log(`currentVolume : ${currentVolume}`);
             console.log(`maVolume : ${maVolume}`);
 
