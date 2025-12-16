@@ -110,7 +110,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const historicalOnly = relevantVolume.slice(0, -1);
 
             const maxPrevVolume = Math.max(...historicalOnly);
-            console.log(`maxPrevVolume : ${maxPrevVolume}`);
             
             // Safety check
             if (maxPrevVolume > 0) {
