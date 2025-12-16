@@ -7,6 +7,7 @@ const {
 } = require('../stockAnalysis'); 
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
+const OFFSET = 2;
 
 // Helper Timestamp
 function convertTimestamp(unixSeconds) {
@@ -89,13 +90,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         }
         
         let volSpikeRatio = 0;
+        let avgVol = 0;
         let volatilityRatio = 0;
 
         // Tentukan Period berdasarkan Interval
-        const PERIOD = (interval === "1h") ? 25 : 15;
+        const PERIOD = (interval === "1h") ? 25 : 20;
 
         if (historyData.length > PERIOD) {
-            volatilityRatio = calculateVolatilityRatio(historyData, PERIOD);
+            historyDataVolatil = historyData.splice(-OFFSET);
+            volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
             const relevantHistory = historyData.slice(-(PERIOD + 1));
@@ -119,12 +122,21 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             } else {
                 volSpikeRatio = 0;
             }
+          
+            // Hitung Average Volume antar MA
+            sliceVol_1 = relevantVolume.slice(0, 4);
+            avgVol_1 = calculateMAVolume(sliceVol_1, 3);
+            sliceVol_2 = relevantVolume.slice(4, 4 + PERIOD);
+            avgVol_2 = calculateMAVolume(sliceVol_2, PERIOD);
+            avgVol = avgVol_1 / avgVol_2;
+          
         }
 
         return {
             status: "Sukses",
             ticker,
             volSpikeRatio: Number(volSpikeRatio.toFixed(3)),
+            avgVol: Number(avgVol.toFixed(3)),
             volatilityRatio: Number(volatilityRatio.toFixed(3)),
             lastData: latestCandle,
             gapValue: Number(gapValue.toFixed(4)),
