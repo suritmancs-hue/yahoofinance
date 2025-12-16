@@ -110,6 +110,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const historicalOnly = relevantVolume.slice(0, -1);
 
             const maxPrevVolume = Math.max(...historicalOnly);
+            console.log(`maxPrevVolume : ${maxPrevVolume}`);
             
             // Safety check
             if (maxPrevVolume > 0) {
@@ -118,10 +119,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 if (ratioVsMax >= 1.5) {
                     volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume);
                 } else {
-                    volSpikeRatio = 0;
+                    volSpikeRatio = 'max';
                 }
             } else {
-                volSpikeRatio = 0;
+                volSpikeRatio = 'else';
             }
           
             // Hitung Average Volume antar MA
@@ -129,6 +130,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const maShort = calculateMAVolume(historicalOnly, SHORT_PERIOD);
             const historyForLong = historicalOnly.slice(0, -SHORT_PERIOD);
             const maLong = calculateMAVolume(historyForLong, PERIOD);
+            console.log(`maShort : ${maShort}`);
+            console.log(`maLong : ${maLong}`);
             if (maLong > 0) {
                 avgVol = maShort / maLong;
             }
