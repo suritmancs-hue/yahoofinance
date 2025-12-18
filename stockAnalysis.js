@@ -44,6 +44,41 @@ function calculateVolatilityRatio(historicalDataArray, period) {
 }
 
 /**
+ * Menghitung Linear Regression Slope (LRS)
+ * @param {Array} dataArray - Array berisi harga penutupan (close)
+ * @param {number} period - Periode yang dihitung (misal: 25)
+ */
+function calculateLRS(dataArray, period) {
+  if (dataArray.length < period) return 0;
+
+  // Ambil data sesuai periode terakhir
+  const y = dataArray.slice(-period); 
+  const n = period;
+  
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumX2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    const x = i + 1; // Urutan waktu (1, 2, 3...n)
+    const currentY = y[i];
+    
+    sumX += x;
+    sumY += currentY;
+    sumXY += (x * currentY);
+    sumX2 += (x * x);
+  }
+
+  // Rumus Slope: (n*sumXY - sumX*sumY) / (n*sumX2 - sumX^2)
+  const numerator = (n * sumXY) - (sumX * sumY);
+  const denominator = (n * sumX2) - (Math.pow(sumX, 2));
+
+  if (denominator === 0) return 0;
+  return numerator / denominator;
+}
+
+/**
  * Menghitung Rasio Spike.
  */
 function calculateVolumeRatio(currentVolume, maVolume) {
@@ -66,5 +101,6 @@ module.exports = {
   calculateMAVolume,
   calculateVolumeRatio,
   calculateVolatilityRatio,
+  calculateLRS,
   calculateMaxClose,
 };
