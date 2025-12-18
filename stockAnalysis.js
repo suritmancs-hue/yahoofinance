@@ -76,7 +76,9 @@ function calculateLRS(dataArray, period) {
   const denominator = (n * sumX2) - (Math.pow(sumX, 2));
 
   if (denominator === 0) return 0;
-  return numerator / denominator;
+  const slopeNominal = numerator / denominator;
+  const avgPrice = sumY / n;
+  return (slopeNominal / avgPrice) * 100;  // Hasil : % kemiringan
 }
 
 /**
