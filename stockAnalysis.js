@@ -51,8 +51,9 @@ function calculateVolatilityRatio(historicalDataArray, period) {
 function calculateLRS(dataArray, period) {
   if (dataArray.length < period) return 0;
 
-  // Ambil data sesuai periode terakhir
-  const y = dataArray.slice(-period); 
+  // Ambil data array close
+  const relevantHistory = dataArray.slice(-period);
+  const y = relevantHistory.map(candle => candle.close);
   const n = period;
   
   let sumX = 0;
