@@ -125,7 +125,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             if (maxPrevVolume > 0) {
                 const ratioVsMax = currentVolume / maxPrevVolume;
                 // Ambang batas spike (1.5x)
-                if (ratioVsMax >= 1.5) {
+                if (ratioVsMax >= 1) {
                     volSpikeRatio = calculateVolumeRatio(currentVolume, maVolume);
                 } else {
                     volSpikeRatio = 0;
