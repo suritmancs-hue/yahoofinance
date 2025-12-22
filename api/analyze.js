@@ -6,6 +6,7 @@ const {
   calculateVolumeRatio, 
   calculateVolatilityRatio,
   calculateLRS,
+  calculateAverageLRS,
   calculateMaxClose,
   calculateOBVArray
 } = require('../stockAnalysis'); 
@@ -124,7 +125,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, lrs = 0;
         let currentDeltaOBV = 0, currentNetOBV = 0, avgNetOBV = 0, spikeNetOBV = 0;
         // Tentukan Period berdasarkan Interval
-        const PERIOD = (interval === "1h") ? 25 : 20;
+        const PERIOD = (interval === "1h") ? 26 : 20;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 2;
        
         //Hitung
@@ -134,7 +135,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
               
             const historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
-            lrs = calculateLRS(historyDataVolatil, PERIOD);
+            avgLRS = calculateAverageLRS(historyDataVolatil, PERIOD / 2);
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
             const allVolumes = historyData.map(d => d.volume);
@@ -193,7 +194,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volSpikeRatio: Number(volSpikeRatio.toFixed(4)),
             avgVol: Number(avgVol.toFixed(4)),
             volatilityRatio: Number(volatilityRatio.toFixed(4)),
-            lrs: Number(lrs.toFixed(4)),
+            lrs: Number(avgLRS.toFixed(4)),
             lastData: latestCandle,
             gapValue: Number(gapValue.toFixed(4)),
             maxClose: Number(maxClose.toFixed(2)),
