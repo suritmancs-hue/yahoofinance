@@ -99,6 +99,29 @@ function calculateMaxClose(historicalDataArray, period) {
   return Math.max(...closes);
 }
 
+/**
+ * Menghitung Array OBV
+ * @param {Array} subCandles - Data candle dari timeframe lebih kecil
+ */
+function calculateOBVArray(subCandles) {
+  let currentNetOBV = 0;
+  return subCandles.map(candle => {
+    let delta = 0;
+    if (candle.close > candle.open) {
+      delta = candle.volume;
+    } else if (candle.close < candle.open) {
+      delta = -candle.volume;
+    }
+    
+    currentNetOBV += delta;
+    return {
+      timestamp: candle.timestamp,
+      deltaOBV: delta,
+      netOBV: currentNetOBV
+    };
+  });
+}
+
 module.exports = {
   calculateAverage,
   calculateMAVolume,
@@ -106,4 +129,5 @@ module.exports = {
   calculateVolatilityRatio,
   calculateLRS,
   calculateMaxClose,
+  calculateOBVArray,
 };
