@@ -169,18 +169,18 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             
             //current Delta OBV
             const allDeltatOBV = historyData.map(d => d.deltaOBV);
-            const currentDeltaOBV = allDeltatOBV[allDeltatOBV.length - 1];
+            currentDeltaOBV = allDeltatOBV[allDeltatOBV.length - 1];
           
             //Hitung Average Net OBV
             const allNetOBV = historyData.map(d => d.netOBV);
-            const currentNetOBV = allNetOBV[allNetOBV.length - 1];
+            currentNetOBV = allNetOBV[allNetOBV.length - 1];
             const historicalNetOBV = allNetOBV.slice(0, -1);
             const maNetOBV = calculateMA(historicalNetOBV, PERIOD);
-            const avgNetOBV = currentNetOBV / maNetOBV;
+            avgNetOBV = currentNetOBV / maNetOBV;
 
             //Net OBV Spike
             const prevNetOBV = allNetOBV[allNetOBV.length - 2];
-            const spikeNetOBV = currentNetOBV / prevNetOBV;
+            spikeNetOBV = currentNetOBV / prevNetOBV;
           
         }
 
