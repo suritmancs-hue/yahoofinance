@@ -8,7 +8,8 @@ const {
   calculateLRS,
   calculateAverageLRS,
   calculateMaxClose,
-  calculateOBVArray
+  calculateOBVArray,
+  calculateSTDEV
 } = require('../stockAnalysis'); 
 
 
@@ -181,7 +182,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             currentNetOBV = allNetOBV[allNetOBV.length - 1];
             const historicalNetOBV = allNetOBV.slice(0, -1);
             const maNetOBV = calculateMA(historicalNetOBV, PERIOD);
-            avgNetOBV = currentNetOBV / maNetOBV;
+            const stdevOBV = calculateSTDEV(historicalNetOBV, PERIOD);
+            avgNetOBV = stdevOBV !== 0 ? (currentNetOBV - maNetOBV) / stdevOBV : 0;
 
             //Net OBV Spike
             const prevNetOBV = allNetOBV[allNetOBV.length - 2];
