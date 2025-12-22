@@ -74,28 +74,26 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             
             // Mencari batas akhir timeframe utama (i + 1)
             // Jika data berikutnya tidak ada, gunakan selisih timestamp sebelumnya sebagai estimasi
-            const intervalStep = mainTimestamps[1] - mainTimestamps[0];
-            const nextMainTs = mainTimestamps[i + 1] || (currentMainTs + intervalStep);
+            const standardDuration = mainTimestamps[1] - mainTimestamps[0];
+            const actualNextTs = mainTimestamps[i + 1] || (currentMainTs + standardDuration);
+            const nextMainTs = Math.min(actualNextTs, currentMainTs + standardDuration);
             
             const mainVolumeTarget = mainQuote.volume[i] || 0; 
         
-            // 1. FILTER UNIVERSAL: Mengambil sub-candles yang berada tepat di dalam durasi main candle
-            // Ini berfungsi baik untuk 1D (24 jam) maupun 1H (60 menit)
+            // FILTER UNIVERSAL: Mengambil sub-candles yang berada tepat di dalam durasi main candle
             const subCandlesInRange = subCandles.filter(sub => 
                 sub.timestamp >= currentMainTs && sub.timestamp < nextMainTs
             );
             
-            // 2. Hitung total volume dari sub-candles (1H atau 15m)
+            // SINKRONISASI VOLUME
             const totalSubVolume = subCandlesInRange.reduce((acc, curr) => acc + (curr.volume || 0), 0);
-            
-            // 3. Scale Factor Universal: (Volume Timeframe Besar / Total Volume Timeframe Kecil)
             const dailyScaleFactor = (totalSubVolume > 0 && mainVolumeTarget > 0) 
                 ? mainVolumeTarget / totalSubVolume 
                 : 1;
 
             let currentDeltaOBV = 0;
             
-            // 4. Hitung Delta OBV per Sub-Candle
+            // Hitung Delta OBV per Sub-Candle
             subCandlesInRange.forEach(sub => {
                 const open = sub.open ?? sub.close;
                 const close = sub.close;
