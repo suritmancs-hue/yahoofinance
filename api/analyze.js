@@ -68,27 +68,30 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
    
         const historyData = [];
         let runningNetOBV = 0;
-        
+
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
             const nextMainTs = mainTimestamps[i + 1] || Infinity;
-            const dailyVolumeTarget = mainQuote.volume[i] || 0; // Volume 1D hari tersebut
+            const dailyVolumeTarget = mainQuote.volume[i] || 0; 
         
-            // 1. Ambil sub-candles yang masuk dalam rentang hari ini
+            // 1. Ambil sub-candles yang masuk dalam rentang candle utama ini
             const subCandlesToday = subCandles.filter(o => o.timestamp >= currentMainTs && o.timestamp < nextMainTs);
             
-            // 2. Hitung total volume sub-candle hari ini
+            // 2. Hitung total volume sub-candle
             const totalSubVolumeToday = subCandlesToday.reduce((acc, curr) => acc + (curr.volume || 0), 0);
             
-            // 3. Hitung Scale Factor khusus untuk hari ini
+            // 3. Hitung Scale Factor (Sinkronisasi Volume)
             const dailyScaleFactor = totalSubVolumeToday > 0 ? dailyVolumeTarget / totalSubVolumeToday : 1;
         
-            // 4. Hitung Delta OBV dengan volume yang sudah disinkronkan
+            // 4. Hitung Delta OBV
             let dailyDeltaOBV = 0;
             subCandlesToday.forEach(sub => {
                 const open = sub.open ?? sub.close;
                 const close = sub.close;
-                const range = Math.max(1, (sub.high || close) - (sub.low || close));
+                const high = sub.high ?? Math.max(open, close);
+                const low  = sub.low  ?? Math.min(open, close);
+                
+                const range = Math.max(1, high - low);
                 const bodyStrength = Math.abs(close - open) / range;
                 
                 const syncedSubVolume = (sub.volume || 0) * dailyScaleFactor;
@@ -100,20 +103,22 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 }
             });
         
-            // 5. Update Net OBV secara kumulatif
+            // 5. Update Akumulasi OBV
             runningNetOBV += dailyDeltaOBV;
-            
+        
+            // Push ke historyData hanya jika ada harga close yang valid
             if (typeof mainQuote.close[i] === 'number') {
-              historyData.push({
-                  timestamp: convertTimestamp(currentMainTs),
-                      open: mainQuote.open[i],
-                      high: mainQuote.high[i],
-                      low: mainQuote.low[i],
-                      close: mainQuote.close[i],
-                      volume: dailyVolumeTarget,
-                      deltaOBV: dailyDeltaOBV,
-                      netOBV: runningNetOBV
-              });
+                historyData.push({
+                    timestamp: convertTimestamp(currentMainTs),
+                    open: mainQuote.open[i],
+                    high: mainQuote.high[i],
+                    low: mainQuote.low[i],
+                    close: mainQuote.close[i],
+                    volume: dailyVolumeTarget,
+                    deltaOBV: dailyDeltaOBV,
+                    netOBV: runningNetOBV
+                });
+            }
         }
 
         if (historyData.length === 0) return { ticker, status: "Not Found", message: "Filtered Empty" };
