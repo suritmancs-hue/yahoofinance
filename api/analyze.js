@@ -84,6 +84,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const dailyScaleFactor = (totalSubVolumeToday > 0 && dailyVolumeTarget > 0) 
                 ? dailyVolumeTarget / totalSubVolumeToday 
                 : 1;
+
+            console.log(`subCandlesToday : ${subCandlesToday}`);
+            console.log(`totalSubVolumeToday : ${totalSubVolumeToday}`);
+            console.log(`dailyScaleFactor : ${dailyScaleFactor}`);
         
             // 4. Hitung Delta OBV sesuai rumus Excel Anda
             let dailyDeltaOBV = 0;
