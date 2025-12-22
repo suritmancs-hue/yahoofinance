@@ -95,7 +95,7 @@ function calculateAverageLRS(historyData, PERIOD = 20, OFFSET = 0) {
 
     if (closes.length !== PERIOD) continue;
 
-    const lrs = calculateLRS(closes);
+    const lrs = calculateLRS(closes, PERIOD);
     sum += lrs;
     count++;
   }
