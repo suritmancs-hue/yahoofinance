@@ -67,8 +67,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const mainQuote = mainResult.indicators.quote[0];
    
         const historyData = [];
-        let currentNetOBV = 0;
-
+        
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
             const nextMainTs = mainTimestamps[i + 1] || Infinity;
