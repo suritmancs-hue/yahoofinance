@@ -105,18 +105,27 @@ function calculateMaxClose(historicalDataArray, period) {
  */
 function calculateOBVArray(subCandles) {
   let currentNetOBV = 0;
+
   return subCandles.map(candle => {
     let delta = 0;
-    // Gunakan penutupan candle sebelumnya jika open tidak tersedia
-    const openPrice = candle.open || candle.close; 
-    
-    if (candle.close > openPrice) {
-      delta = candle.volume;
-    } else if (candle.close < openPrice) {
-      delta = -candle.volume;
+
+    const open = candle.open ?? candle.close;
+    const close = candle.close;
+    const high = candle.high ?? Math.max(open, close);
+    const low  = candle.low  ?? Math.min(open, close);
+    const volume = candle.volume || 0;
+
+    const range = Math.max(1, high - low);
+    const bodyStrength = Math.abs(close - open) / range;
+
+    if (close > open) {
+      delta = volume * bodyStrength;
+    } else if (close < open) {
+      delta = -volume * bodyStrength;
     }
-    
+
     currentNetOBV += delta;
+
     return {
       timestamp: candle.timestamp,
       deltaOBV: delta,
@@ -124,6 +133,7 @@ function calculateOBVArray(subCandles) {
     };
   });
 }
+
 
 module.exports = {
   calculateAverage,
