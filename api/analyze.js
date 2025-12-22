@@ -13,7 +13,7 @@ const {
 
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
-const OFFSET = 0;
+const OFFSET = 2;
 
 // Helper Timestamp
 function convertTimestamp(unixSeconds) {
@@ -126,7 +126,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let currentDeltaOBV = 0, currentNetOBV = 0, avgNetOBV = 0, spikeNetOBV = 0;
         // Tentukan Period berdasarkan Interval
         const PERIOD = (interval === "1h") ? 26 : 20;
-        const MIN_REQUIRED_DATA = PERIOD + OFFSET + 2;
+        const MIN_REQUIRED_DATA = 2 * PERIOD + OFFSET + 2;
        
         //Hitung
         if (historyData.length > MIN_REQUIRED_DATA) {
@@ -136,13 +136,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
             avgLRS = calculateAverageLRS(historyData, PERIOD, OFFSET);
-
-            //cek console
-            const end = historyData.length - OFFSET;
-            const closes20 = historyData
-              .slice(end - PERIOD, end)
-              .map(d => d.close);
-            console.log('LRS Close Window (MUST BE 20):', closes20);
 
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
