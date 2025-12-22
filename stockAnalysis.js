@@ -48,14 +48,14 @@ function calculateVolatilityRatio(historicalDataArray, period) {
  * @param {Array} dataArray - Array berisi harga penutupan (close)
  * @param {number} period - Periode yang dihitung (misal: 25)
  */
-function calculateLRS(closes, PERIOD) {
-  if (!Array.isArray(closes) || closes.length !== PERIOD) return 0;
+function calculateLRS(closesArray, period) {
+  if (!Array.isArray(closesArray) || closesArray.length !== period) return 0;
 
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
-  for (let i = 0; i < PERIOD; i++) {
+  for (let i = 0; i < period; i++) {
     const x = i + 1;           // SEQUENCE(20)
-    const y = Number(closes[i]);
+    const y = Number(closesArray[i]);
     if (!isFinite(y)) return 0;
 
     sumX  += x;
@@ -64,13 +64,13 @@ function calculateLRS(closes, PERIOD) {
     sumX2 += x * x;
   }
 
-  const denom = (PERIOD * sumX2) - (sumX * sumX);
+  const denom = (period * sumX2) - (sumX * sumX);
   if (denom === 0) return 0;
 
   const slope =
-    ((PERIOD * sumXY) - (sumX * sumY)) / denom;
+    ((period * sumXY) - (sumX * sumY)) / denom;
 
-  const avg = sumY / PERIOD;
+  const avg = sumY / period;
   if (avg === 0) return 0;
 
   return Math.abs((slope / avg) * 100);
@@ -79,23 +79,23 @@ function calculateLRS(closes, PERIOD) {
 
 
 //Menghitung averageLRS
-function calculateAverageLRS(historyData, PERIOD=20, OFFSET=0) {
-  const end = historyData.length - OFFSET;
+function calculateAverageLRS(historicalDataArray, period, offset) {
+  const end = historicalDataArray.length - offset;
 
-  if (end < PERIOD * 2) return 0;
+  if (end < period * 2) return 0;
 
   let sum = 0;
   let count = 0;
 
   // ulangi sebanyak PERIOD
-  for (let t = end - 1; t >= end - PERIOD; t--) {
-    const closes = historyData
-      .slice(t - PERIOD + 1, t + 1)
+  for (let t = end - 1; t >= end - period; t--) {
+    const closesData = historicalDataArray
+      .slice(t - period + 1, t + 1)
       .map(d => d.close);
 
-    if (closes.length !== PERIOD) continue;
+    if (closesData.length !== period) continue;
 
-    const lrs = calculateLRS(closes, PERIOD);
+    const lrs = calculateLRS(closesData, period);
     sum += lrs;
     count++;
   }
