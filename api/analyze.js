@@ -135,12 +135,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
               
             const historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
-            avgLRS = calculateLRS(historyData, PERIOD, OFFSET);
+            avgLRS = calculateAverageLRS(historyData, PERIOD, OFFSET);
 
             console.log(
               "LRS Close Window:",
               historyData
-                .slice(historyData.length - OFFSET - PERIODE,
+                .slice(historyData.length - OFFSET - PERIOD,
                        historyData.length - OFFSET)
                 .map(d => d.close)
             );
