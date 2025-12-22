@@ -121,29 +121,41 @@ function calculateMaxClose(historicalDataArray, period) {
   return Math.max(...closes);
 }
 
+
 /**
- * Menghitung Array OBV
- * @param {Array} subCandles - Data candle dari timeframe lebih kecil
+ * Menghitung Array OBV dengan sinkronisasi Volume Timeframe Besar
+ * @param {Array} subCandles - Data candle timeframe kecil (misal 1h/15m)
+ * @param {number} mainVolume - Total volume dari timeframe besar (1d)
  */
-function calculateOBVArray(subCandles) {
+function calculateOBVArray(subCandlesArray, mainVolumeArray) {
+  // 1. Hitung total volume dari semua subCandles (timeframe kecil)
+  const totalSubVolume = subCandlesArray.reduce((sum, c) => sum + (c.volume || 0), 0);
+
+  // 2. Tentukan faktor skala (Scale Factor)
+  // Jika totalSubVolume adalah 1M dan mainVolume adalah 2M, maka faktornya adalah 2
+  const scaleFactor = (totalSubVolume > 0 && mainVolumeArray > 0) ? (mainVolumeArray / totalSubVolume) : 1;
+
   let currentNetOBV = 0;
 
-  return subCandles.map(candle => {
+  return subCandlesArray.map(candle => {
     let delta = 0;
 
     const open = candle.open ?? candle.close;
     const close = candle.close;
     const high = candle.high ?? Math.max(open, close);
     const low  = candle.low  ?? Math.min(open, close);
-    const volume = candle.volume || 0;
+    
+    // 3. Kalikan volume timeframe kecil dengan scaleFactor
+    const syncedVolume = (candle.volume || 0) * scaleFactor;
 
     const range = Math.max(1, high - low);
     const bodyStrength = Math.abs(close - open) / range;
 
+    // 4. Gunakan syncedVolume untuk menghitung delta
     if (close > open) {
-      delta = volume * bodyStrength;
+      delta = syncedVolume * bodyStrength;
     } else if (close < open) {
-      delta = -volume * bodyStrength;
+      delta = -syncedVolume * bodyStrength;
     }
 
     currentNetOBV += delta;
