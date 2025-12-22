@@ -156,6 +156,33 @@ function calculateOBVArray(subCandles) {
   });
 }
 
+/**
+ * Menghitung Standard Deviation (STDEV)
+ * Sama dengan fungsi STDEV di Spreadsheet
+ */
+function calculateSTDEV(dataArray, period) {
+  const relevantData = dataArray.slice(-period)
+  const n = relevantData.length;
+  if (n < 2) return 0; // STDEV butuh minimal 2 data point
+
+  // 1. Cari Rata-rata (Mean)
+  const avg = relevantData.reduce((a, b) => a + b, 0) / n;
+
+  // 2. Hitung jumlah kuadrat selisih (Square Deviations)
+  const squareDiffs = relevantData.map(value => {
+    const diff = value - avg;
+    return diff * diff;
+  });
+
+  const sumSquareDiffs = squareDiffs.reduce((a, b) => a + b, 0);
+
+  // 3. Bagi dengan (n - 1) untuk STDEV Sampel (sama dengan Excel/Sheets)
+  // Gunakan n jika ingin STDEV Populasi
+  const variance = sumSquareDiffs / (n - 1);
+
+  // 4. Akar kuadrat dari varians
+  return Math.sqrt(variance);
+}
 
 module.exports = {
   calculateAverage,
@@ -166,4 +193,5 @@ module.exports = {
   calculateAverageLRS,
   calculateMaxClose,
   calculateOBVArray,
+  calculateSTDEV,
 };
