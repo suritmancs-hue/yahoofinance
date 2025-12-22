@@ -53,7 +53,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         // 3. Proses Sub-Candles untuk OBV
         const subTimestamps = subResult.timestamp;
         const subQuote = subResult.indicators.quote[0];
-       const subCandles = subTimestamps.map((ts, i) => ({
+        const subCandles = subTimestamps.map((ts, i) => ({
           timestamp: ts,
           open: subQuote.open[i],
           high: subQuote.high[i],
@@ -67,7 +67,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const mainQuote = mainResult.indicators.quote[0];
    
         const historyData = [];
-        const netOBV = 0;
+        let netOBV = 0;
         
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
