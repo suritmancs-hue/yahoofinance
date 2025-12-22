@@ -135,7 +135,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
               
             const historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
-            avgLRS = calculateAverageLRS(historyDataVolatil, PERIOD / 2);
+            avgLRS = calculateLRS(historyData, PERIOD, OFFSET);
+
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
             const allVolumes = historyData.map(d => d.volume);
