@@ -93,14 +93,14 @@ function calculateLRS(historyData, PERIODE = 20, OFFSET = 0) {
 
 
 //Menghitung averageLRS
-function calculateAverageLRS(historyData, period) {
+function calculateAverageLRS(historyData, period, offset) {
   if (historyData.length < period * 2) return 0;
 
   const lrsValues = [];
 
   for (let i = historyData.length - period; i >= period; i--) {
     const window = historyData.slice(i - period, i);
-    const lrs = calculateLRS(window, period);
+    const lrs = calculateLRS(window, period, offset);
 
     if (isFinite(lrs)) {
       lrsValues.push(lrs);
