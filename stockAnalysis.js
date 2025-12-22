@@ -124,7 +124,7 @@ function calculateOBVArray(subCandles) {
 
 module.exports = {
   calculateAverage,
-  calculateMAVolume,
+  calculateMA,
   calculateVolumeRatio,
   calculateVolatilityRatio,
   calculateLRS,
