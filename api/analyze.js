@@ -81,26 +81,41 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const totalSubVolumeToday = subCandlesToday.reduce((acc, curr) => acc + (curr.volume || 0), 0);
             
             // 3. Hitung Scale Factor (Sinkronisasi Volume)
-            const dailyScaleFactor = totalSubVolumeToday > 0 ? dailyVolumeTarget / totalSubVolumeToday : 1;
+            const dailyScaleFactor = (totalSubVolumeToday > 0 && dailyVolumeTarget > 0) 
+                ? dailyVolumeTarget / totalSubVolumeToday 
+                : 1;
         
-            // 4. Hitung Delta OBV
+            // 4. Hitung Delta OBV sesuai rumus Excel Anda
             let dailyDeltaOBV = 0;
             subCandlesToday.forEach(sub => {
                 const open = sub.open ?? sub.close;
                 const close = sub.close;
                 const high = sub.high ?? Math.max(open, close);
                 const low  = sub.low  ?? Math.min(open, close);
+                const volume = sub.volume || 0;
+
+                // Rumus Excel: ABS(AC117-Z117) -> Selisih absolut Close - Open (Body)
+                const bodyAbs = Math.abs(close - open);
                 
-                const range = Math.max(1, high - low);
-                const bodyStrength = Math.abs(close - open) / range;
+                // Rumus Excel: MAX(1, (AA117-AB117)) -> Range High-Low, minimal 1
+                const hlRange = Math.max(1, high - low);
+
+                let subDelta = 0;
                 
-                const syncedSubVolume = (sub.volume || 0) * dailyScaleFactor;
-                
+                // Rumus Excel: IF(AC117 > Z117, ... , IF(AC117 < Z117, ... , 0))
                 if (close > open) {
-                    dailyDeltaOBV += syncedSubVolume * bodyStrength;
+                    // Close > Open (Candle Hijau)
+                    subDelta = volume * (bodyAbs / hlRange);
                 } else if (close < open) {
-                    dailyDeltaOBV -= syncedSubVolume * bodyStrength;
+                    // Close < Open (Candle Merah)
+                    subDelta = -volume * (bodyAbs / hlRange);
+                } else {
+                    // Close == Open
+                    subDelta = 0;
                 }
+
+                // Barulah dikalikan dengan dailyScaleFactor untuk sinkronisasi harian
+                dailyDeltaOBV += subDelta * dailyScaleFactor;
             });
         
             // 5. Update Akumulasi OBV
