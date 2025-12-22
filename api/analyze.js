@@ -187,7 +187,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
             //Net OBV Spike
             const prevNetOBV = allNetOBV[allNetOBV.length - 2];
-            spikeNetOBV = currentNetOBV / prevNetOBV;
+            spikeNetOBV = (currentNetOBV - prevNetOBV) / Math.abs(prevNetOBV) * 100;
           
         }
 
