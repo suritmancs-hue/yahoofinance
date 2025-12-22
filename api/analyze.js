@@ -67,7 +67,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const mainQuote = mainResult.indicators.quote[0];
    
         const historyData = [];
-        let netOBV = 0;
+        let runningNetOBV = 0;
         
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
@@ -101,15 +101,19 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             });
         
             // 5. Update Net OBV secara kumulatif
-            netOBV += dailyDeltaOBV;
-        
-            historyData.push({
-                timestamp: convertTimestamp(currentMainTs),
-                close: mainQuote.close[i],
-                volume: dailyVolumeTarget,
-                deltaOBV: dailyDeltaOBV,
-                netOBV: netOBV
-            });
+            runningNetOBV += dailyDeltaOBV;
+            
+            if (typeof mainQuote.close[i] === 'number') {
+              historyData.push({
+                  timestamp: convertTimestamp(currentMainTs),
+                      open: mainQuote.open[i],
+                      high: mainQuote.high[i],
+                      low: mainQuote.low[i],
+                      close: mainQuote.close[i],
+                      volume: dailyVolumeTarget,
+                      deltaOBV: dailyDeltaOBV,
+                      netOBV: runningNetOBV
+              });
         }
 
         if (historyData.length === 0) return { ticker, status: "Not Found", message: "Filtered Empty" };
