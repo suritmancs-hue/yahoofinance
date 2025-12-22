@@ -67,6 +67,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const mainQuote = mainResult.indicators.quote[0];
    
         const historyData = [];
+        const netOBV
         
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
@@ -100,14 +101,14 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             });
         
             // 5. Update Net OBV secara kumulatif
-            currentNetOBV += dailyDeltaOBV;
+            netOBV += dailyDeltaOBV;
         
             historyData.push({
                 timestamp: convertTimestamp(currentMainTs),
                 close: mainQuote.close[i],
                 volume: dailyVolumeTarget,
                 deltaOBV: dailyDeltaOBV,
-                netOBV: currentNetOBV
+                netOBV: netOBV
             });
         }
 
