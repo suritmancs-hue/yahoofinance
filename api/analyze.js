@@ -62,35 +62,53 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
           volume: subQuote.volume[i] || 0
         }));
 
-        const obvHistory = calculateOBVArray(subCandles); //Fungsi menghitung OBV
-
         // 4. Proses Main-Candles dan Map OBV
         const mainTimestamps = mainResult.timestamp;
         const mainQuote = mainResult.indicators.quote[0];
+   
         const historyData = [];
+        let currentNetOBV = 0;
 
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
             const nextMainTs = mainTimestamps[i + 1] || Infinity;
-
-            // Ambil data OBV yang jatuh di dalam rentang waktu candle ini
-            // (OBV dari timeframe kecil yang terjadi selama durasi candle timeframe besar)
-            const obvInRange = obvHistory.filter(o => o.timestamp >= currentMainTs && o.timestamp < nextMainTs);
+            const dailyVolumeTarget = mainQuote.volume[i] || 0; // Volume 1D hari tersebut
+        
+            // 1. Ambil sub-candles yang masuk dalam rentang hari ini
+            const subCandlesToday = subCandles.filter(o => o.timestamp >= currentMainTs && o.timestamp < nextMainTs);
             
-            const sumDeltaOBV = obvInRange.reduce((acc, curr) => acc + curr.deltaOBV, 0);
-            const netOBV = obvInRange.length > 0 ? obvInRange[obvInRange.length - 1].netOBV : 0;
-
-            if (typeof mainQuote.close[i] !== 'number') continue;
-
+            // 2. Hitung total volume sub-candle hari ini
+            const totalSubVolumeToday = subCandlesToday.reduce((acc, curr) => acc + (curr.volume || 0), 0);
+            
+            // 3. Hitung Scale Factor khusus untuk hari ini
+            const dailyScaleFactor = totalSubVolumeToday > 0 ? dailyVolumeTarget / totalSubVolumeToday : 1;
+        
+            // 4. Hitung Delta OBV dengan volume yang sudah disinkronkan
+            let dailyDeltaOBV = 0;
+            subCandlesToday.forEach(sub => {
+                const open = sub.open ?? sub.close;
+                const close = sub.close;
+                const range = Math.max(1, (sub.high || close) - (sub.low || close));
+                const bodyStrength = Math.abs(close - open) / range;
+                
+                const syncedSubVolume = (sub.volume || 0) * dailyScaleFactor;
+                
+                if (close > open) {
+                    dailyDeltaOBV += syncedSubVolume * bodyStrength;
+                } else if (close < open) {
+                    dailyDeltaOBV -= syncedSubVolume * bodyStrength;
+                }
+            });
+        
+            // 5. Update Net OBV secara kumulatif
+            currentNetOBV += dailyDeltaOBV;
+        
             historyData.push({
                 timestamp: convertTimestamp(currentMainTs),
-                open: mainQuote.open[i],
-                high: mainQuote.high[i],
-                low: mainQuote.low[i],
                 close: mainQuote.close[i],
-                volume: mainQuote.volume[i] || 0,
-                deltaOBV: sumDeltaOBV, // Total Delta OBV selama periode candle
-                netOBV: netOBV         // OBV Akumulatif di akhir periode candle
+                volume: dailyVolumeTarget,
+                deltaOBV: dailyDeltaOBV,
+                netOBV: currentNetOBV
             });
         }
 
