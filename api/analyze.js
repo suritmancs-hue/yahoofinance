@@ -71,15 +71,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
-            const nextMainTs = mainTimestamps[i + 1] || Infinity;
+            const nextMainTs = mainTimestamps[i + 1] || (currentMainTs + (mainTimestamps[1] - mainTimestamps[0] || 86400));
             const dailyVolumeTarget = mainQuote.volume[i] || 0; 
         
             // 1. Ambil sub-candles yang masuk dalam rentang candle utama ini
             const subCandlesToday = subCandles.filter(o => o.timestamp >= currentMainTs && o.timestamp < nextMainTs);
-            
+          
             // 2. Hitung total volume sub-candle
             const totalSubVolumeToday = subCandlesToday.reduce((acc, curr) => acc + (curr.volume || 0), 0);
-            
+          
             // 3. Hitung Scale Factor (Sinkronisasi Volume)
             const dailyScaleFactor = (totalSubVolumeToday > 0 && dailyVolumeTarget > 0) 
                 ? dailyVolumeTarget / totalSubVolumeToday 
@@ -90,36 +90,24 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             console.log(`dailyScaleFactor : ${dailyScaleFactor}`);
         
             // 4. Hitung Delta OBV sesuai rumus Excel Anda
-            let dailyDeltaOBV = 0;
+           let dailyDeltaOBV = 0;
             subCandlesToday.forEach(sub => {
                 const open = sub.open ?? sub.close;
                 const close = sub.close;
                 const high = sub.high ?? Math.max(open, close);
                 const low  = sub.low  ?? Math.min(open, close);
-                const volume = sub.volume || 0;
-
-                // Rumus Excel: ABS(AC117-Z117) -> Selisih absolut Close - Open (Body)
+                
                 const bodyAbs = Math.abs(close - open);
+                const hlRange = Math.max(1, high - low); // Hindari pembagian nol
+                const bodyStrength = bodyAbs / hlRange;
                 
-                // Rumus Excel: MAX(1, (AA117-AB117)) -> Range High-Low, minimal 1
-                const hlRange = Math.max(1, high - low);
-
-                let subDelta = 0;
+                const syncedSubVolume = (sub.volume || 0) * dailyScaleFactor;
                 
-                // Rumus Excel: IF(AC117 > Z117, ... , IF(AC117 < Z117, ... , 0))
                 if (close > open) {
-                    // Close > Open (Candle Hijau)
-                    subDelta = volume * (bodyAbs / hlRange);
+                    dailyDeltaOBV += syncedSubVolume * bodyStrength;
                 } else if (close < open) {
-                    // Close < Open (Candle Merah)
-                    subDelta = -volume * (bodyAbs / hlRange);
-                } else {
-                    // Close == Open
-                    subDelta = 0;
+                    dailyDeltaOBV -= syncedSubVolume * bodyStrength;
                 }
-
-                // Barulah dikalikan dengan dailyScaleFactor untuk sinkronisasi harian
-                dailyDeltaOBV += subDelta * dailyScaleFactor;
             });
         
             // 5. Update Akumulasi OBV
