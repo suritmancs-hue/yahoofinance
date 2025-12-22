@@ -13,7 +13,7 @@ const {
 
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
-const OFFSET = 2;
+const OFFSET = 0;
 
 // Helper Timestamp
 function convertTimestamp(unixSeconds) {
@@ -137,13 +137,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
             avgLRS = calculateAverageLRS(historyData, PERIOD, OFFSET);
 
-            console.log(
-              "LRS Close Window:",
-              historyData
-                .slice(historyData.length - OFFSET - PERIOD,
-                       historyData.length - OFFSET)
-                .map(d => d.close)
-            );
+            //cek console
+            const end = historyData.length - OFFSET;
+            const closes20 = historyData
+              .slice(end - PERIOD, end)
+              .map(d => d.close);
+            console.log('LRS Close Window (MUST BE 20):', closes20);
+
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
             const allVolumes = historyData.map(d => d.volume);
