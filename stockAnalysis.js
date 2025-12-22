@@ -48,29 +48,15 @@ function calculateVolatilityRatio(historicalDataArray, period) {
  * @param {Array} dataArray - Array berisi harga penutupan (close)
  * @param {number} period - Periode yang dihitung (misal: 25)
  */
-function calculateLRS(historyData, PERIODE = 20, OFFSET = 0) {
-  const end = historyData.length - OFFSET;
-  const start = end - PERIODE;
+function calculateLRS(closes, PERIOD) {
+  if (!Array.isArray(closes) || closes.length !== PERIOD) return 0;
 
-  if (start < 0) return 0;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
-  // === Setara dengan E65:E84 ===
-  const closes = historyData
-    .slice(start, end)
-    .map(d => Number(d.close));
-
-  const n = closes.length;
-  if (n !== PERIODE) return 0;
-
-  let sumX = 0;
-  let sumY = 0;
-  let sumXY = 0;
-  let sumX2 = 0;
-
-  // === SEQUENCE(PERIODE) ===
-  for (let i = 0; i < n; i++) {
-    const x = i + 1;   // 1..PERIODE
-    const y = closes[i];
+  for (let i = 0; i < PERIOD; i++) {
+    const x = i + 1;           // SEQUENCE(20)
+    const y = Number(closes[i]);
+    if (!isFinite(y)) return 0;
 
     sumX  += x;
     sumY  += y;
@@ -78,13 +64,13 @@ function calculateLRS(historyData, PERIODE = 20, OFFSET = 0) {
     sumX2 += x * x;
   }
 
-  const denominator = (n * sumX2) - (sumX * sumX);
-  if (denominator === 0) return 0;
+  const denom = (PERIOD * sumX2) - (sumX * sumX);
+  if (denom === 0) return 0;
 
   const slope =
-    ((n * sumXY) - (sumX * sumY)) / denominator;
+    ((PERIOD * sumXY) - (sumX * sumY)) / denom;
 
-  const avg = sumY / n;
+  const avg = sumY / PERIOD;
   if (avg === 0) return 0;
 
   return Math.abs((slope / avg) * 100);
@@ -93,25 +79,35 @@ function calculateLRS(historyData, PERIODE = 20, OFFSET = 0) {
 
 
 //Menghitung averageLRS
-function calculateAverageLRS(historyData, period, offset) {
-  if (historyData.length < period * 2) return 0;
+function calculateAverageLRS(historyData, PERIOD = 20, OFFSET = 0) {
+  const N = historyData.length;
+  const endT = N - OFFSET;
+
+  // butuh data minimal
+  if (endT < PERIOD * 2) return 0;
 
   const lrsValues = [];
 
-  for (let i = historyData.length - period; i >= period; i--) {
-    const window = historyData.slice(i - period, i);
-    const lrs = calculateLRS(window, period, offset);
+  // t = (N-OFFSET-PERIOD) → (N-OFFSET)
+  for (let t = endT - PERIOD; t < endT; t++) {
+    const start = t - PERIOD + 1;
+    if (start < 0) continue;
 
-    if (isFinite(lrs)) {
-      lrsValues.push(lrs);
+    const closes = historyData
+      .slice(start, t + 1)
+      .map(d => d.close);
+
+    if (closes.length === PERIOD) {
+      const lrs = calculateLRS(closes, PERIOD);
+      if (isFinite(lrs)) lrsValues.push(lrs);
     }
   }
 
   if (lrsValues.length === 0) return 0;
 
-  const sum = lrsValues.reduce((a, b) => a + b, 0);
-  return sum / lrsValues.length;
+  return lrsValues.reduce((a, b) => a + b, 0) / lrsValues.length;
 }
+
 
 
 /**
