@@ -71,49 +71,54 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         for (let i = 0; i < mainTimestamps.length; i++) {
             const currentMainTs = mainTimestamps[i];
-            const nextMainTs = mainTimestamps[i + 1] || (currentMainTs + (mainTimestamps[1] - mainTimestamps[0] || 86400));
-            const dailyVolumeTarget = mainQuote.volume[i] || 0; 
+            
+            // Mencari batas akhir timeframe utama (i + 1)
+            // Jika data berikutnya tidak ada, gunakan selisih timestamp sebelumnya sebagai estimasi
+            const intervalStep = mainTimestamps[1] - mainTimestamps[0];
+            const nextMainTs = mainTimestamps[i + 1] || (currentMainTs + intervalStep);
+            
+            const mainVolumeTarget = mainQuote.volume[i] || 0; 
         
-            // 1. Ambil sub-candles yang masuk dalam rentang candle utama ini
-            const subCandlesToday = subCandles.filter(o => o.timestamp >= currentMainTs && o.timestamp < nextMainTs);
-          
-            // 2. Hitung total volume sub-candle
-            const totalSubVolumeToday = subCandlesToday.reduce((acc, curr) => acc + (curr.volume || 0), 0);
-          
-            // 3. Hitung Scale Factor (Sinkronisasi Volume)
-            const dailyScaleFactor = (totalSubVolumeToday > 0 && dailyVolumeTarget > 0) 
-                ? dailyVolumeTarget / totalSubVolumeToday 
+            // 1. FILTER UNIVERSAL: Mengambil sub-candles yang berada tepat di dalam durasi main candle
+            // Ini berfungsi baik untuk 1D (24 jam) maupun 1H (60 menit)
+            const subCandlesInRange = subCandles.filter(sub => 
+                sub.timestamp >= currentMainTs && sub.timestamp < nextMainTs
+            );
+            
+            // 2. Hitung total volume dari sub-candles (1H atau 15m)
+            const totalSubVolume = subCandlesInRange.reduce((acc, curr) => acc + (curr.volume || 0), 0);
+            
+            // 3. Scale Factor Universal: (Volume Timeframe Besar / Total Volume Timeframe Kecil)
+            const dailyScaleFactor = (totalSubVolume > 0 && mainVolumeTarget > 0) 
+                ? mainVolumeTarget / totalSubVolume 
                 : 1;
 
-            console.log(`subCandlesToday : ${subCandlesToday}`);
-            console.log(`totalSubVolumeToday : ${totalSubVolumeToday}`);
-            console.log(`dailyScaleFactor : ${dailyScaleFactor}`);
-        
-            // 4. Hitung Delta OBV sesuai rumus Excel Anda
-           let dailyDeltaOBV = 0;
-            subCandlesToday.forEach(sub => {
+            let currentDeltaOBV = 0;
+            
+            // 4. Hitung Delta OBV per Sub-Candle
+            subCandlesInRange.forEach(sub => {
                 const open = sub.open ?? sub.close;
                 const close = sub.close;
                 const high = sub.high ?? Math.max(open, close);
                 const low  = sub.low  ?? Math.min(open, close);
-                
+                const vol  = sub.volume || 0;
+
                 const bodyAbs = Math.abs(close - open);
-                const hlRange = Math.max(1, high - low); // Hindari pembagian nol
+                const hlRange = Math.max(1, high - low);
                 const bodyStrength = bodyAbs / hlRange;
                 
-                const syncedSubVolume = (sub.volume || 0) * dailyScaleFactor;
+                // Gunakan volume yang sudah disinkronkan dengan timeframe besar
+                const syncedSubVolume = vol * dailyScaleFactor;
                 
                 if (close > open) {
-                    dailyDeltaOBV += syncedSubVolume * bodyStrength;
+                    currentDeltaOBV += syncedSubVolume * bodyStrength;
                 } else if (close < open) {
-                    dailyDeltaOBV -= syncedSubVolume * bodyStrength;
+                    currentDeltaOBV -= syncedSubVolume * bodyStrength;
                 }
             });
         
-            // 5. Update Akumulasi OBV
-            runningNetOBV += dailyDeltaOBV;
+            runningNetOBV += currentDeltaOBV;
         
-            // Push ke historyData hanya jika ada harga close yang valid
             if (typeof mainQuote.close[i] === 'number') {
                 historyData.push({
                     timestamp: convertTimestamp(currentMainTs),
@@ -121,13 +126,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                     high: mainQuote.high[i],
                     low: mainQuote.low[i],
                     close: mainQuote.close[i],
-                    volume: dailyVolumeTarget,
-                    deltaOBV: dailyDeltaOBV,
+                    volume: mainVolumeTarget,
+                    deltaOBV: currentDeltaOBV,
                     netOBV: runningNetOBV
                 });
             }
         }
-
         if (historyData.length === 0) return { ticker, status: "Not Found", message: "Filtered Empty" };
 
         // --- FITUR BACKDAY (LOGIKA BARU) ---
