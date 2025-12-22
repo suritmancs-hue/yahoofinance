@@ -48,38 +48,38 @@ function calculateVolatilityRatio(historicalDataArray, period) {
  * @param {Array} dataArray - Array berisi harga penutupan (close)
  * @param {number} period - Periode yang dihitung (misal: 25)
  */
-function calculateLRS(dataArray, period) {
-  if (dataArray.length < period) return 0;
+function calculateLRS(historyData, period) {
+  if (historyData.length < period) return 0;
 
-  // Ambil data array close
-  const relevantHistory = dataArray.slice(-period);
-  const y = relevantHistory.map(candle => candle.close);
+  const window = historyData.slice(-period);
+  const closes = window.map(c => c.close);
+
   const n = period;
-  
-  let sumX = 0;
-  let sumY = 0;
-  let sumXY = 0;
-  let sumX2 = 0;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
   for (let i = 0; i < n; i++) {
-    const x = i + 1; // Urutan waktu (1, 2, 3...n)
-    const currentY = y[i];
-    
+    const x = i + 1;
+    const y = closes[i];
+
     sumX += x;
-    sumY += currentY;
-    sumXY += (x * currentY);
-    sumX2 += (x * x);
+    sumY += y;
+    sumXY += x * y;
+    sumX2 += x * x;
   }
 
-  // Rumus Slope: (n*sumXY - sumX*sumY) / (n*sumX2 - sumX^2)
-  const numerator = (n * sumXY) - (sumX * sumY);
-  const denominator = (n * sumX2) - (Math.pow(sumX, 2));
+  const numerator   = (n * sumXY) - (sumX * sumY);
+  const denominator = (n * sumX2) - (sumX ** 2);
 
   if (denominator === 0) return 0;
-  const slopeNominal = numerator / denominator;
+
+  const slope = numerator / denominator;
   const avgPrice = sumY / n;
-  return (slopeNominal / avgPrice) * 100;  // Hasil : % kemiringan
+
+  if (avgPrice === 0) return 0;
+
+  return Math.abs((slope / avgPrice) * 100);
 }
+
 
 //Menghitung averageLRS
 function calculateAverageLRS(historyData, period) {
