@@ -81,27 +81,27 @@ function calculateLRS(closes, PERIOD) {
 //Menghitung averageLRS
 function calculateAverageLRS(historyData, PERIOD = 20, OFFSET = 0) {
   const end = historyData.length - OFFSET;
+
   if (end < PERIOD * 2) return 0;
 
   let sum = 0;
   let count = 0;
 
-  for (let t = end - PERIOD; t < end; t++) {
+  // ulangi sebanyak PERIOD (20 kali)
+  for (let t = end - 1; t >= end - PERIOD; t--) {
     const closes = historyData
       .slice(t - PERIOD + 1, t + 1)
       .map(d => d.close);
 
-    const lrs = calculateLRS(closes, PERIOD);
-    if (isFinite(lrs)) {
-      sum += lrs;
-      count++;
-    }
+    if (closes.length !== PERIOD) continue;
+
+    const lrs = calculateLRS(closes);
+    sum += lrs;
+    count++;
   }
 
   return count ? sum / count : 0;
 }
-
-
 
 
 /**
