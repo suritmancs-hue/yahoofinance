@@ -2,7 +2,7 @@
 
 const { 
   calculateAverage,
-  calculateMAVolume, 
+  calculateMA, 
   calculateVolumeRatio, 
   calculateVolatilityRatio,
   calculateLRS,
@@ -24,44 +24,68 @@ function convertTimestamp(unixSeconds) {
 // Tambahkan parameter 'backday' (default 0 jika tidak diisi)
 async function processSingleTicker(ticker, interval, range, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
+    let subInterval = '1h';
+    if (interval === '1h') subInterval = '15m';
+    if (interval === '1d') subInterval = '1h';
 
     const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`);
     url.searchParams.set('interval', interval || '1d');
     url.searchParams.set('range', range || '1mo');
 
     try {
-        const apiResponse = await fetch(url.toString(), {
-            headers: { 'User-Agent': 'Mozilla/5.0' }
-        });
-        
-        if (!apiResponse.ok) return { ticker, status: "Error", message: `Yahoo ${apiResponse.status}` };
+        // Fetch Data Utama dan Data OBV secara Paralel
+        const [mainRes, subRes] = await Promise.all([
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`),
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${range}`)
+        ]);
 
-        const data = await apiResponse.json();
-        const result = data?.chart?.result?.[0];
+        const mainData = await mainRes.json();
+        const subData = await subRes.json();
 
-        if (!result || !result.timestamp || !result.indicators.quote[0].close) {
-            return { ticker, status: "Not Found", message: "Data Empty" };
-        }
+        const mainResult = mainData?.chart?.result?.[0];
+        const subResult = subData?.chart?.result?.[0];
 
-        const { timestamp } = result;
-        const { open, high, low, close, volume } = result.indicators.quote[0];
-        const dataLength = timestamp.length;
+        if (!mainResult || !subResult) return { ticker, status: "Error", message: "Data Empty" };
 
-        // --- FILTERING DATA (Menit 00 & Valid Price) ---
+        // 3. Proses Sub-Candles untuk OBV
+        const subTimestamps = subResult.timestamp;
+        const subQuote = subResult.indicators.quote[0];
+        const subCandles = subTimestamps.map((ts, i) => ({
+            timestamp: ts, // Gunakan raw unix untuk mapping
+            open: subQuote.open[i],
+            close: subQuote.close[i],
+            volume: subQuote.volume[i] || 0
+        }));
+
+        const obvHistory = calculateOBVArray(subCandles); //Fungsi menghitung OBV
+
+        // 4. Proses Main-Candles dan Map OBV
+        const mainTimestamps = mainResult.timestamp;
+        const mainQuote = mainResult.indicators.quote[0];
         const historyData = [];
-        for (let i = 0; i < dataLength; i++) {
-            const c = close[i];
-            // 1. Cek harga valid
-            if (typeof c !== 'number' || isNaN(c)) continue;
+
+        for (let i = 0; i < mainTimestamps.length; i++) {
+            const currentMainTs = mainTimestamps[i];
+            const nextMainTs = mainTimestamps[i + 1] || Infinity;
+
+            // Ambil data OBV yang jatuh di dalam rentang waktu candle ini
+            // (OBV dari timeframe kecil yang terjadi selama durasi candle timeframe besar)
+            const obvInRange = obvHistory.filter(o => o.timestamp >= currentMainTs && o.timestamp < nextMainTs);
             
-            const tsStr = convertTimestamp(timestamp[i]);
-            
-            // 2. Filter Menit :00 (String check)
-            //if (!tsStr.includes(":00:00")) continue;
+            const sumDeltaOBV = obvInRange.reduce((acc, curr) => acc + curr.deltaOBV, 0);
+            const netOBV = obvInRange.length > 0 ? obvInRange[obvInRange.length - 1].netOBV : 0;
+
+            if (typeof mainQuote.close[i] !== 'number') continue;
 
             historyData.push({
-                timestamp: tsStr,
-                open: open[i], high: high[i], low: low[i], close: c, volume: volume[i] || 0
+                timestamp: convertTimestamp(currentMainTs),
+                open: mainQuote.open[i],
+                high: mainQuote.high[i],
+                low: mainQuote.low[i],
+                close: mainQuote.close[i],
+                volume: mainQuote.volume[i] || 0,
+                deltaOBV: sumDeltaOBV, // Total Delta OBV selama periode candle
+                netOBV: netOBV         // OBV Akumulatif di akhir periode candle
             });
         }
 
@@ -93,12 +117,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             gapValue = currentOpen/prevClose;
         }
     
-        
-        let maxClose = 0;
-        let volSpikeRatio = 0;
-        let avgVol = 0;
-        let volatilityRatio = 0;
-        let lrs = 0;
+      
+        let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, lrs = 0;
+        let currentDeltaOBV = 0, currentNetOBV = 0, avgNetOBV = 0, spikeNetOBV = 0;
         // Tentukan Period berdasarkan Interval
         const PERIOD = (interval === "1h") ? 25 : 20;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 2;
@@ -116,7 +137,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const allVolumes = historyData.map(d => d.volume);
             const currentVolume = allVolumes[allVolumes.length - 1];
             const historicalVolumes = allVolumes.slice(0, -1);
-            const maVolume = calculateMAVolume(historicalVolumes, PERIOD);
+            const maVolume = calculateMA(historicalVolumes, PERIOD);
 
             const relevantHistoricalVol = historicalVolumes.slice(-PERIOD);
             const maxPrevVolume = Math.max(...relevantHistoricalVol);
@@ -135,15 +156,31 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             }
           
             // Hitung Average Volume antar MA3 dan MA10
-            const maShort = calculateMAVolume(allVolumes, 3);
+            const maShort = calculateMA(allVolumes, 3);
             const volumesForLong = allVolumes.slice(0, -3);
-            const maLong = calculateMAVolume(volumesForLong, 10)
+            const maLong = calculateMA(volumesForLong, 10)
           
             if (maLong > 0) {
                 avgVol = maShort / maLong;
             }  else {
                 avgVol = 0;
             }
+
+            
+            //current Delta OBV
+            const allDeltatOBV = historyData.map(d => d.deltaOBV);
+            const currentDeltaOBV = allDeltatOBV[allDeltatOBV.length - 1];
+          
+            //Hitung Average Net OBV
+            const allNetOBV = historyData.map(d => d.netOBV);
+            const currentNetOBV = allNetOBV[allNetOBV.length - 1];
+            const historicalNetOBV = allNetOBV.slice(0, -1);
+            const maNetOBV = calculateMA(historicalNetOBV, PERIOD);
+            const avgNetOBV = currentNetOBV / maNetOBV;
+
+            //Net OBV Spike
+            const prevNetOBV = allNetOBV[allNetOBV.length - 2];
+            const spikeNetOBV = currentNetOBV / prevNetOBV;
           
         }
 
@@ -157,6 +194,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             lastData: latestCandle,
             gapValue: Number(gapValue.toFixed(4)),
             maxClose: Number(maxClose.toFixed(2)),
+            currentDeltaOBV: Number(currentDeltaOBV.toFixed(4)),
+            currentNetOBV: Number(currentNetOBV.toFixed(4)),
+            avgNetOBV: Number(avgNetOBV.toFixed(4)),
+            spikeNetOBV: Number(spikeNetOBV.toFixed(4)),
             backtestMode: backdayInt > 0 ? `Mundur ${backdayInt} periode` : "Live" 
         };
 
