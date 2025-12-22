@@ -33,7 +33,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
     const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`);
     url.searchParams.set('interval', interval || '1d');
-    url.searchParams.set('range', range || '3mo');
+    url.searchParams.set('range', range || '2mo');
 
     try {
         // Fetch Data Utama dan Data OBV secara Paralel
