@@ -122,7 +122,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         }
     
       
-        let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, lrs = 0;
+        let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avglrs = 0;
         let currentDeltaOBV = 0, currentNetOBV = 0, avgNetOBV = 0, spikeNetOBV = 0;
         // Tentukan Period berdasarkan Interval
         const PERIOD = (interval === "1h") ? 26 : 20;
