@@ -79,7 +79,7 @@ function calculateLRS(closes, PERIOD) {
 
 
 //Menghitung averageLRS
-function calculateAverageLRS(historyData, PERIOD, OFFSET) {
+function calculateAverageLRS(historyData, PERIOD=20, OFFSET=0) {
   const end = historyData.length - OFFSET;
 
   if (end < PERIOD * 2) return 0;
