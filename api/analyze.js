@@ -6,7 +6,8 @@ const {
   calculateVolumeRatio, 
   calculateVolatilityRatio,
   calculateLRS,
-  calculateMaxClose
+  calculateMaxClose,
+  calculateOBVArray
 } = require('../stockAnalysis'); 
 
 
