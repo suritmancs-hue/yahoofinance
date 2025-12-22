@@ -107,9 +107,12 @@ function calculateOBVArray(subCandles) {
   let currentNetOBV = 0;
   return subCandles.map(candle => {
     let delta = 0;
-    if (candle.close > candle.open) {
+    // Gunakan penutupan candle sebelumnya jika open tidak tersedia
+    const openPrice = candle.open || candle.close; 
+    
+    if (candle.close > openPrice) {
       delta = candle.volume;
-    } else if (candle.close < candle.open) {
+    } else if (candle.close < openPrice) {
       delta = -candle.volume;
     }
     
