@@ -12,10 +12,10 @@ function calculateAverage(dataArray) {
 /**
  * Menghitung MA Volume.
  */
-function calculateMAVolume(volumeArray, period) {
-  if (volumeArray.length < period) return 0;
-  const relevantVolume = volumeArray.slice(volumeArray.length - period);
-  return calculateAverage(relevantVolume);
+function calculateMA(dataArray, period) {
+  if (dataArray.length < period) return 0;
+  const relevantData = dataArray.slice(dataArray.length - period);
+  return calculateAverage(relevantData);
 }
 
 /**
