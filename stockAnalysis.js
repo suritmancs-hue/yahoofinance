@@ -48,28 +48,28 @@ function calculateVolatilityRatio(historicalDataArray, period) {
  * @param {Array} dataArray - Array berisi harga penutupan (close)
  * @param {number} period - Periode yang dihitung (misal: 25)
  */
-function calculateLRS(historyData, slopeLength, offset = 0) {
-  if (!Array.isArray(historyData)) return 0;
+function calculateLRS(historyData, PERIODE = 20, OFFSET = 0) {
+  const end = historyData.length - OFFSET;
+  const start = end - PERIODE;
 
-  const endIndex = historyData.length - offset;
-  const startIndex = endIndex - slopeLength;
+  if (start < 0) return 0;
 
-  if (startIndex < 0 || endIndex <= startIndex) return 0;
+  // === Setara dengan E65:E84 ===
+  const closes = historyData
+    .slice(start, end)
+    .map(d => Number(d.close));
 
-  // === SETARA DENGAN E68:E87 ===
-  const window = historyData.slice(startIndex, endIndex);
-  const closes = window.map(d => d.close);
-
-  const n = slopeLength;
+  const n = closes.length;
+  if (n !== PERIODE) return 0;
 
   let sumX = 0;
   let sumY = 0;
   let sumXY = 0;
   let sumX2 = 0;
 
-  // === SEQUENCE(SLOPE) ===
+  // === SEQUENCE(PERIODE) ===
   for (let i = 0; i < n; i++) {
-    const x = i + 1;      // 1..SLOPE
+    const x = i + 1;   // 1..PERIODE
     const y = closes[i];
 
     sumX  += x;
@@ -78,16 +78,18 @@ function calculateLRS(historyData, slopeLength, offset = 0) {
     sumX2 += x * x;
   }
 
-  const denominator = (n * sumX2) - (sumX ** 2);
+  const denominator = (n * sumX2) - (sumX * sumX);
   if (denominator === 0) return 0;
 
-  const slope = ((n * sumXY) - (sumX * sumY)) / denominator;
-  const avgPrice = sumY / n;
-  if (avgPrice === 0) return 0;
+  const slope =
+    ((n * sumXY) - (sumX * sumY)) / denominator;
 
-  // === ABS(SLOPE / AVERAGE * 100) ===
-  return Math.abs((slope / avgPrice) * 100);
+  const avg = sumY / n;
+  if (avg === 0) return 0;
+
+  return Math.abs((slope / avg) * 100);
 }
+
 
 
 //Menghitung averageLRS
