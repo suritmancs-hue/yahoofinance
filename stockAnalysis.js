@@ -81,6 +81,28 @@ function calculateLRS(dataArray, period) {
   return (slopeNominal / avgPrice) * 100;  // Hasil : % kemiringan
 }
 
+//Menghitung averageLRS
+function calculateAverageLRS(historyData, period) {
+  if (historyData.length < period * 2) return 0;
+
+  const lrsValues = [];
+
+  for (let i = historyData.length - period; i >= period; i--) {
+    const window = historyData.slice(i - period, i);
+    const lrs = calculateLRS(window, period);
+
+    if (isFinite(lrs)) {
+      lrsValues.push(lrs);
+    }
+  }
+
+  if (lrsValues.length === 0) return 0;
+
+  const sum = lrsValues.reduce((a, b) => a + b, 0);
+  return sum / lrsValues.length;
+}
+
+
 /**
  * Menghitung Rasio Spike.
  */
@@ -141,6 +163,7 @@ module.exports = {
   calculateVolumeRatio,
   calculateVolatilityRatio,
   calculateLRS,
+  calculateAverageLRS,
   calculateMaxClose,
   calculateOBVArray,
 };
