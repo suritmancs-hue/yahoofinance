@@ -140,9 +140,11 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                     currentDeltaOBV -= syncedVol * (bodyAbs / hlRange);
                 }
             });
-        
+
             runningNetOBV += currentDeltaOBV;
-        
+
+            console.log(`[${ticker}] ${convertTimestamp(currentCandle.timestamp)} | Main Vol: ${currentCandle.volume} | SubVol Sum: ${totalSubVolume.toFixed(0)} | Scale: ${scaleFactor.toFixed(4)} | Delta OBV: ${currentDeltaOBV.toFixed(2)} | Net OBV: ${runningNetOBV.toFixed(2)}`);
+                           
             historyData.push({
                 timestamp: convertTimestamp(currentCandle.timestamp),
                 open: currentCandle.open,
