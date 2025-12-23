@@ -128,6 +128,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             });
 
             runningNetOBV += currentDeltaOBV;
+
+            console.log(
+                `[${ticker}] ${convertTimestamp(currentCandle.timestamp)} | ` +
+                `Vol Utama: ${currentCandle.volume.toLocaleString()} | ` +
+                `Delta: ${currentDeltaOBV.toFixed(2)} | ` +
+                `Net: ${runningNetOBV.toFixed(2)} | ` +
+                `Scale: ${scaleFactor.toFixed(3)}`
+            );
+          
             historyData.push({ ...currentCandle, timestamp: convertTimestamp(currentCandle.timestamp), deltaOBV: currentDeltaOBV, netOBV: runningNetOBV });
         }
 
