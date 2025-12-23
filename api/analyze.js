@@ -138,6 +138,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                     currentDeltaOBV += syncedVol * (bodyAbs / hlRange);
                 } else if (subClose < subOpen) {
                     currentDeltaOBV -= syncedVol * (bodyAbs / hlRange);
+                } else {
+                    // Logika Doji: Bandingkan dengan sub-candle sebelumnya dalam range yang sama
+                    const prevSub = subCandlesInRange[idx - 1];
+                    if (prevSub) {
+                        if (subClose > prevSub.close) currentDeltaOBV += syncedVol;
+                        else if (subClose < prevSub.close) currentDeltaOBV -= syncedVol;
+                    }
                 }
             });
 
@@ -187,7 +194,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         }
     
       
-        let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avglrs = 0;
+        let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV = 0, currentNetOBV = 0, avgNetOBV = 0, spikeNetOBV = 0;
         // Tentukan Period berdasarkan Interval
         const PERIOD = (interval === "1h") ? 26 : 20;
@@ -251,7 +258,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
             //Net OBV Spike
             const prevNetOBV = allNetOBV[allNetOBV.length - 2];
-            spikeNetOBV = (currentNetOBV - prevNetOBV) / Math.abs(prevNetOBV) * 100;
+            spikeNetOBV = (prevNetOBV !== 0) ? ((currentNetOBV - prevNetOBV) / Math.abs(prevNetOBV) * 100) : 0;
           
         }
 
