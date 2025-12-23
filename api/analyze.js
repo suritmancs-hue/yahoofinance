@@ -72,74 +72,81 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             return isValidPrice && isValidMinute;
         });
 
+      
         // 4. Proses Main-Candles dan Map OBV
         const mainTimestamps = mainResult.timestamp;
-        const mainQuote = mainResult.indicators.quote[0];
+        const mainQuoteRaw = mainResult.indicators.quote[0];
+
+        // Filter array mainCandles agar sinkron dengan menit bursa
+        const mainCandles = mainTimestamps.map((ts, i) => ({
+            timestamp: ts,
+            open: mainQuoteRaw.open[i],
+            high: mainQuoteRaw.high[i],
+            low: mainQuoteRaw.low[i],
+            close: mainQuoteRaw.close[i],
+            volume: mainQuoteRaw.volume[i] || 0
+        })).filter((d) => {
+            const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
+            const dateObj = new Date(d.timestamp * 1000);
+            const mins = dateObj.getUTCMinutes();
+            // Meloloskan menit standar bursa
+            const isValidMinute = mins === 0 || mins === 15 || mins === 30 || mins === 45;
+            return isValidPrice && isValidMinute;
+        });
    
         const historyData = [];
         let runningNetOBV = 0;
 
-        for (let i = 0; i < mainTimestamps.length; i++) {
-            const currentMainTs = mainTimestamps[i];
+        for (let i = 0; i < mainCandles.length; i++) {
+            const currentCandle = mainCandles[i]; // Gunakan nama variabel yang jelas
+            const nextCandle = mainCandles[i + 1];
             
-            // Mencari batas akhir timeframe utama (i + 1)
-            // Jika data berikutnya tidak ada, gunakan selisih timestamp sebelumnya sebagai estimasi
-            const standardDuration = mainTimestamps[1] - mainTimestamps[0];
-            const actualNextTs = mainTimestamps[i + 1] || (currentMainTs + standardDuration);
-            const nextMainTs = Math.min(actualNextTs, currentMainTs + standardDuration);
+            // Menentukan batas waktu (Universal)
+            // intervalStep dihitung dari selisih timestamp asli agar akurat menangani hari libur
+            const intervalStep = (mainCandles.length > 1) 
+                ? (mainCandles[1].timestamp - mainCandles[0].timestamp) 
+                : 3600;
+          
+            const nextMainTs = nextCandle ? nextCandle.timestamp : (currentCandle.timestamp + intervalStep);
             
-            const mainVolumeTarget = mainQuote.volume[i] || 0; 
-        
-            // FILTER UNIVERSAL: Mengambil sub-candles yang berada tepat di dalam durasi main candle
+            // Filter sub-candles yang masuk dalam rentang candle utama ini
             const subCandlesInRange = subCandles.filter(sub => 
-                sub.timestamp >= currentMainTs && sub.timestamp < nextMainTs
+                sub.timestamp >= currentCandle.timestamp && sub.timestamp < nextMainTs
             );
             
-            // SINKRONISASI VOLUME
             const totalSubVolume = subCandlesInRange.reduce((acc, curr) => acc + (curr.volume || 0), 0);
-            const dailyScaleFactor = (totalSubVolume > 0 && mainVolumeTarget > 0) 
-                ? mainVolumeTarget / totalSubVolume 
-                : 1;
-
+            const scaleFactor = (totalSubVolume > 0 && currentCandle.volume > 0) ? currentCandle.volume / totalSubVolume : 1;
+        
             let currentDeltaOBV = 0;
-            
-            // Hitung Delta OBV per Sub-Candle
             subCandlesInRange.forEach(sub => {
-                const open = sub.open ?? sub.close;
-                const close = sub.close;
-                const high = sub.high ?? Math.max(open, close);
-                const low  = sub.low  ?? Math.min(open, close);
-                const vol  = sub.volume || 0;
-
-                const bodyAbs = Math.abs(close - open);
-                const hlRange = Math.max(1, high - low);
-                const bodyStrength = bodyAbs / hlRange;
+                const subOpen = sub.open ?? sub.close;
+                const subClose = sub.close;
+                const bodyAbs = Math.abs(subClose - subOpen);
+                const hlRange = Math.max(1, sub.high - sub.low);
+                const syncedVol = sub.volume * scaleFactor;
                 
-                // Gunakan volume yang sudah disinkronkan dengan timeframe besar
-                const syncedSubVolume = vol * dailyScaleFactor;
-                
-                if (close > open) {
-                    currentDeltaOBV += syncedSubVolume * bodyStrength;
-                } else if (close < open) {
-                    currentDeltaOBV -= syncedSubVolume * bodyStrength;
+                if (subClose > subOpen) {
+                    currentDeltaOBV += syncedVol * (bodyAbs / hlRange);
+                } else if (subClose < subOpen) {
+                    currentDeltaOBV -= syncedVol * (bodyAbs / hlRange);
                 }
             });
         
             runningNetOBV += currentDeltaOBV;
         
-            if (typeof mainQuote.close[i] === 'number') {
-                historyData.push({
-                    timestamp: convertTimestamp(currentMainTs),
-                    open: mainQuote.open[i],
-                    high: mainQuote.high[i],
-                    low: mainQuote.low[i],
-                    close: mainQuote.close[i],
-                    volume: mainVolumeTarget,
-                    deltaOBV: currentDeltaOBV,
-                    netOBV: runningNetOBV
-                });
-            }
+            historyData.push({
+                timestamp: convertTimestamp(currentCandle.timestamp),
+                open: currentCandle.open,
+                high: currentCandle.high,
+                low: currentCandle.low,
+                close: currentCandle.close,
+                volume: currentCandle.volume,
+                deltaOBV: currentDeltaOBV,
+                netOBV: runningNetOBV
+            });
         }
+
+      
         if (historyData.length === 0) return { ticker, status: "Not Found", message: "Filtered Empty" };
 
         // --- FITUR BACKDAY (LOGIKA BARU) ---
