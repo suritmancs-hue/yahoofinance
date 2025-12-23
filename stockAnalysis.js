@@ -139,6 +139,7 @@ function calculateOBVArray(subCandlesArray, mainVolumeArray) {
 
   return subCandlesArray.map(candle => {
     let delta = 0;
+    const prevCandle = i > 0 ? subCandlesArray[i - 1] : null;
 
     const open = candle.open ?? candle.close;
     const close = candle.close;
@@ -152,10 +153,22 @@ function calculateOBVArray(subCandlesArray, mainVolumeArray) {
     const bodyStrength = Math.abs(close - open) / range;
 
     // 4. Gunakan syncedVolume untuk menghitung delta
-    if (close > open) {
-      delta = syncedVolume * bodyStrength;
-    } else if (close < open) {
-      delta = -syncedVolume * bodyStrength;
+    if (close !== open) {
+      // Jika ada body, gunakan Body Strength
+      if (close > open) {
+        delta = syncedVolume * bodyStrength;
+      } else {
+        delta = -syncedVolume * bodyStrength;
+      }
+    } else {
+      // Jika Doji (close == open), gunakan perbandingan Close sebelumnya (Solusi 2)
+      if (prevCandle) {
+        if (close > prevCandle.close) {
+          delta = syncedVolume;
+        } else if (close < prevCandle.close) {
+          delta = -syncedVolume;
+        }
+      }
     }
 
     currentNetOBV += delta;
