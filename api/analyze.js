@@ -63,13 +63,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         })).filter((d) => {
             // A. Cek apakah harga valid
             const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
-            // B. Cek apakah Menit == 00
+            // B. Cek apakah detik valid = 00
             const dateObj = new Date(d.timestamp * 1000);
+            const seconds = dateObj.getUTCSeconds();
+            const isValidSecond = seconds === 0;
+            // C. Cek apakah Menit Valid
             const minutes = dateObj.getUTCMinutes();
             const isValidMinute = minutes === 0 || minutes === 15 || minutes === 30 || minutes === 45;
-            console.log(`getUTCMinutes : ${dateObj.getUTCMinutes()}`);
-            // C. Gabungkan kedua syarat
-            return isValidPrice && isValidMinute;
+            // D. Gabungkan kedua syarat
+            return isValidPrice && isValidSecond && isValidMinute;
         });
 
       
@@ -88,10 +90,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         })).filter((d) => {
             const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
             const dateObj = new Date(d.timestamp * 1000);
+            const seconds = dateObj.getUTCSeconds();
             const mins = dateObj.getUTCMinutes();
-            // Meloloskan menit standar bursa
+            // Meloloskan detik dan menit standar bursa
+            const isValidSecond = seconds === 0;
             const isValidMinute = mins === 0 || mins === 15 || mins === 30 || mins === 45;
-            return isValidPrice && isValidMinute;
+            return isValidPrice && isValidSecond && isValidMinute;
         });
    
         const historyData = [];
