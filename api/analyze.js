@@ -106,12 +106,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const historyData = [];
         let runningNetOBV = 0;
 
+        const historyData = [];
+        let runningNetOBV = 0;
+
         for (let i = 0; i < mainCandles.length; i++) {
-            const currentCandle = mainCandles[i]; // Gunakan nama variabel yang jelas
+            const currentCandle = mainCandles[i];
             const nextCandle = mainCandles[i + 1];
             
-            // Menentukan batas waktu (Universal)
-            // intervalStep dihitung dari selisih timestamp asli agar akurat menangani hari libur
             const intervalStep = (mainCandles.length > 1) 
                 ? (mainCandles[1].timestamp - mainCandles[0].timestamp) 
                 : 3600;
@@ -127,31 +128,36 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const scaleFactor = (totalSubVolume > 0 && currentCandle.volume > 0) ? currentCandle.volume / totalSubVolume : 1;
         
             let currentDeltaOBV = 0;
-            subCandlesInRange.forEach(sub => {
+            
+            // Perbaikan: Tambahkan 'idx' agar Doji Recovery bekerja
+            subCandlesInRange.forEach((sub, idx) => {
                 const subOpen = sub.open ?? sub.close;
                 const subClose = sub.close;
                 const bodyAbs = Math.abs(subClose - subOpen);
-                const hlRange = Math.max(1, sub.high - sub.low);
-                const syncedVol = sub.volume * scaleFactor;
+                const hlRange = Math.max(0.001, sub.high - sub.low); // Hindari 0
+                const syncedVol = (sub.volume || 0) * scaleFactor;
                 
-                if (subClose > subOpen) {
-                    currentDeltaOBV += syncedVol * (bodyAbs / hlRange);
-                } else if (subClose < subOpen) {
-                    currentDeltaOBV -= syncedVol * (bodyAbs / hlRange);
+                if (subClose !== subOpen) {
+                    // Logika Weighted Body
+                    const strength = bodyAbs / hlRange;
+                    currentDeltaOBV += (subClose > subOpen ? 1 : -1) * syncedVol * strength;
                 } else {
-                    // Logika Doji: Bandingkan dengan sub-candle sebelumnya dalam range yang sama
-                    const prevSub = subCandlesInRange[idx - 1];
+                    // Logika Doji Recovery (Bandingkan dengan sub-candle sebelumnya)
+                    const prevSub = idx > 0 ? subCandlesInRange[idx - 1] : null;
                     if (prevSub) {
                         if (subClose > prevSub.close) currentDeltaOBV += syncedVol;
                         else if (subClose < prevSub.close) currentDeltaOBV -= syncedVol;
+                    } else if (i > 0) {
+                        // Jika sub-candle pertama di batch ini, bandingkan dengan close candle utama sebelumnya
+                        const prevMainClose = mainCandles[i-1].close;
+                        if (subClose > prevMainClose) currentDeltaOBV += syncedVol;
+                        else if (subClose < prevMainClose) currentDeltaOBV -= syncedVol;
                     }
                 }
             });
 
             runningNetOBV += currentDeltaOBV;
 
-            //console.log(`[${ticker}] ${convertTimestamp(currentCandle.timestamp)} | Main Vol: ${currentCandle.volume} | SubVol Sum: ${totalSubVolume.toFixed(0)} | Scale: ${scaleFactor.toFixed(4)} | Delta OBV: ${currentDeltaOBV.toFixed(2)} | Net OBV: ${runningNetOBV.toFixed(2)}`);
-                           
             historyData.push({
                 timestamp: convertTimestamp(currentCandle.timestamp),
                 open: currentCandle.open,
@@ -257,9 +263,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             avgNetOBV = stdevOBV !== 0 ? (currentNetOBV - maNetOBV) / stdevOBV : 0;
 
             //Net OBV Spike
+            avgNetOBV = (stdevOBV > 0) ? (currentNetOBV_val - maNetOBV) / stdevOBV : 0;
             const prevNetOBV = allNetOBV[allNetOBV.length - 2];
-            spikeNetOBV = (prevNetOBV !== 0) ? ((currentNetOBV - prevNetOBV) / Math.abs(prevNetOBV) * 100) : 0;
-          
+            spikeNetOBV = (prevNetOBV !== 0) ? ((currentNetOBV_val - prevNetOBV) / Math.abs(prevNetOBV) * 100) : 0;
         }
 
         return {
