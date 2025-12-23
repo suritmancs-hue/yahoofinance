@@ -60,7 +60,17 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
           low: subQuote.low[i],
           close: subQuote.close[i],
           volume: subQuote.volume[i] || 0
-        }));
+        })).filter((d) => {
+            // A. Cek apakah harga valid
+            const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
+            // B. Cek apakah Menit == 00
+            const dateObj = new Date(d.timestamp * 1000);
+            const minutes = dateObj.getUTCMinutes();
+            const isValidMinute = minutes === 0 || minutes === 15 || minutes === 30 || minutes === 45;
+            console.log(`getUTCMinutes : ${dateObj.getUTCMinutes()}`);
+            // C. Gabungkan kedua syarat
+            return isValidPrice && isValidMinute;
+        });
 
         // 4. Proses Main-Candles dan Map OBV
         const mainTimestamps = mainResult.timestamp;
