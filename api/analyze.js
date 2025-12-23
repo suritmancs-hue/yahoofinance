@@ -125,7 +125,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                         }
                     }
                 }
-            }
+            });
 
             runningNetOBV += currentDeltaOBV;
             historyData.push({ ...currentCandle, timestamp: convertTimestamp(currentCandle.timestamp), deltaOBV: currentDeltaOBV, netOBV: runningNetOBV });
