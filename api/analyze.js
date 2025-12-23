@@ -85,23 +85,47 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const scaleFactor = (totalSubVolume > 0 && currentCandle.volume > 0) ? currentCandle.volume / totalSubVolume : 1;
         
             let currentDeltaOBV = 0;
+
             subCandlesInRange.forEach((sub, idx) => {
                 const subOpen = sub.open ?? sub.close;
                 const subClose = sub.close;
-                const bodyAbs = Math.abs(subClose - subOpen);
-                const hlRange = Math.max(0.001, sub.high - sub.low);
+                const subHigh = sub.high ?? Math.max(subOpen, subClose);
+                const subLow = sub.low ?? Math.min(subOpen, subClose);
                 const syncedVol = (sub.volume || 0) * scaleFactor;
                 
+                // --- IMPLEMENTASI RUMUS HYBRID ---
                 if (subClose !== subOpen) {
-                    currentDeltaOBV += (subClose > subOpen ? 1 : -1) * syncedVol * (bodyAbs / hlRange);
+                    // Logika Body Strength
+                    const bodyAbs = Math.abs(subClose - subOpen);
+                    const hlRange = Math.max(1, (subHigh - subLow));
+                    const multiplier = bodyAbs / hlRange;
+                    
+                    if (subClose > subOpen) {
+                        currentDeltaOBV += syncedVol * multiplier;
+                    } else {
+                        currentDeltaOBV -= syncedVol * multiplier;
+                    }
                 } else {
-                    const prevSub = idx > 0 ? subCandlesInRange[idx - 1] : null;
-                    if (prevSub) {
-                        if (subClose > prevSub.close) currentDeltaOBV += syncedVol;
-                        else if (subClose < prevSub.close) currentDeltaOBV -= syncedVol;
+                    // ELSE (Doji) -> Logika Perbandingan Close Sebelumnya
+                    let prevCloseForDoji = null;
+
+                    if (idx > 0) {
+                        // Ambil close dari sub-candle sebelumnya dalam grup yang sama
+                        prevCloseForDoji = subCandlesInRange[idx - 1].close;
+                    } else if (i > 0) {
+                        // Jika ini sub-candle pertama, ambil close dari candle utama sebelumnya
+                        prevCloseForDoji = mainCandles[i - 1].close;
+                    }
+
+                    if (prevCloseForDoji !== null) {
+                        if (subClose > prevCloseForDoji) {
+                            currentDeltaOBV += syncedVol;
+                        } else if (subClose < prevCloseForDoji) {
+                            currentDeltaOBV -= syncedVol;
+                        }
                     }
                 }
-            });
+            }
 
             runningNetOBV += currentDeltaOBV;
             historyData.push({ ...currentCandle, timestamp: convertTimestamp(currentCandle.timestamp), deltaOBV: currentDeltaOBV, netOBV: runningNetOBV });
