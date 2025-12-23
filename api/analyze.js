@@ -34,10 +34,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
     if (interval === '1h') {
           subInterval = '15m';
-          defaultRange = range || '20d'; // Set 20 hari untuk 1H (15m)
+          defaultRange = range || '10d'; // Set 20 hari untuk 1H (15m)
     } else if (interval === '1d') {
           subInterval = '1h';
-          defaultRange = range || '3mo'; // Set 3 bulan untuk 1D (1h)
+          defaultRange = range || '2mo'; // Set 3 bulan untuk 1D (1h)
     }
   
     try {
@@ -198,7 +198,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
               
             const historyDataVolatil = historyData.slice(0, -OFFSET);
             volatilityRatio = calculateVolatilityRatio(historyDataVolatil, PERIOD);
-            avgLRS = calculateAverageLRS(historyData, PERIOD, OFFSET);
+            avgLRS = calculateAverageLRS(historyData, PERIOD / 2, OFFSET);
 
             
             // Optimasi: Ambil slice terakhir saja untuk MA Volume
