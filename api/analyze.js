@@ -27,19 +27,24 @@ function convertTimestamp(unixSeconds) {
 // Tambahkan parameter 'backday' (default 0 jika tidak diisi)
 async function processSingleTicker(ticker, interval, range, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
+
+    // 1. Tentukan subInterval dan Default Range secara otomatis
     let subInterval = '1h';
-    if (interval === '1h') subInterval = '15m';
-    if (interval === '1d') subInterval = '1h';
+    let defaultRange = range || '3mo'; // Default umum
 
-    const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`);
-    url.searchParams.set('interval', interval || '1d');
-    url.searchParams.set('range', range || '3mo');
-
+    if (interval === '1h') {
+          subInterval = '15m';
+          defaultRange = range || '20d'; // Set 20 hari untuk 1H (15m)
+    } else if (interval === '1d') {
+          subInterval = '1h';
+          defaultRange = range || '3mo'; // Set 3 bulan untuk 1D (1h)
+    }
+  
     try {
         // Fetch Data Utama dan Data OBV secara Paralel
         const [mainRes, subRes] = await Promise.all([
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`),
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${range}`)
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${defaultRange}`),
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${defaultRange}`)
         ]);
 
         const mainData = await mainRes.json();
