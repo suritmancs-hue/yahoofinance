@@ -36,13 +36,33 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         const subQuote = subResult.indicators.quote[0];
         const subCandles = subResult.timestamp.map((ts, i) => ({
-          timestamp: ts, open: subQuote.open[i], high: subQuote.high[i], low: subQuote.low[i], close: subQuote.close[i], volume: subQuote.volume[i] || 0
-        })).filter(d => typeof d.close === 'number' && !isNaN(d.close));
+          timestamp: ts,
+          open: subQuote.open[i],
+          high: subQuote.high[i],
+          low: subQuote.low[i],
+          close: subQuote.close[i],
+          volume: subQuote.volume[i] || 0
+        })).filter((d) => {
+            const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
+            const dateObj = new Date(d.timestamp * 1000);
+            const seconds = dateObj.getUTCSeconds();
+            const minutes = dateObj.getUTCMinutes();
+            // Filter: Detik 00 dan Menit kelipatan 15 (0, 15, 30, 45)
+            const isValidSecond = seconds === 0;
+            const isValidMinute = minutes === 0 || minutes === 15 || minutes === 30 || minutes === 45;
+            return isValidPrice && isValidSecond && isValidMinute;
+        });
 
         const mainQuoteRaw = mainResult.indicators.quote[0];
-        const mainCandles = mainResult.timestamp.map((ts, i) => ({
-            timestamp: ts, open: mainQuoteRaw.open[i], high: mainQuoteRaw.high[i], low: mainQuoteRaw.low[i], close: mainQuoteRaw.close[i], volume: mainQuoteRaw.volume[i] || 0
-        })).filter(d => typeof d.close === 'number' && !isNaN(d.close));
+        .filter((d) => {
+            const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
+            const dateObj = new Date(d.timestamp * 1000);
+            const seconds = dateObj.getUTCSeconds();
+            const mins = dateObj.getUTCMinutes();
+            const isValidSecond = seconds === 0;
+            const isValidMinute = mins === 0 || mins === 15 || mins === 30 || mins === 45;
+            return isValidPrice && isValidSecond && isValidMinute;
+        });
 
         const historyData = [];
         let runningNetOBV = 0;
