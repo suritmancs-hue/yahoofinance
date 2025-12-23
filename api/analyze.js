@@ -4,7 +4,7 @@
 const { 
   calculateMA, calculateVolumeRatio, calculateVolatilityRatio,
   calculateAverageLRS, calculateMaxClose, calculateSTDEV
-} = require('./stockAnalysis'); 
+} = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
 const OFFSET = 2;
