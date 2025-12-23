@@ -54,7 +54,14 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         });
 
         const mainQuoteRaw = mainResult.indicators.quote[0];
-        .filter((d) => {
+        const mainCandles = mainResult.timestamp.map((ts, i) => ({
+            timestamp: ts,
+            open: mainQuoteRaw.open[i],
+            high: mainQuoteRaw.high[i],
+            low: mainQuoteRaw.low[i],
+            close: mainQuoteRaw.close[i],
+            volume: mainQuoteRaw.volume[i] || 0
+        })).filter((d) => {
             const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
             const dateObj = new Date(d.timestamp * 1000);
             const seconds = dateObj.getUTCSeconds();
