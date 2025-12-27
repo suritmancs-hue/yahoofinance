@@ -158,13 +158,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         
-        const PERIOD = (interval === "1h") ? 30 : 25;
+        const PERIOD = (interval === "1h") ? 35 : 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1;
        
         if (historyData.length > MIN_REQUIRED_DATA) {
             maxClose = calculateMaxClose(historyData.slice(0, -1), PERIOD);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
-            avgLRS = calculateAverageLRS(historyData, Math.floor(PERIOD / 2), OFFSET);
+            avgLRS = calculateAverageLRS(historyData, Math.floor(((PERIOD + 1) / 2), OFFSET);
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
