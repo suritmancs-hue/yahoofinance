@@ -2,7 +2,7 @@
  * analyze.js
  */
 const { 
-  calculateMA, calculateVolumeRatio, calculateVolatilityRatio,
+  calculateMA, calculateVolatilityRatio,
   calculateAverageLRS, calculateMaxClose, calculateSTDEV
 } = require('../stockAnalysis');
 
@@ -168,9 +168,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
-            const maxPrevVolume = Math.max(...allVolumes.slice(-PERIOD - 1, -1));
-            volSpikeRatio = (allVolumes[allVolumes.length - 1] >= maxPrevVolume) ? calculateVolumeRatio(allVolumes[allVolumes.length - 1], maVolume) : 0;
-            
+            //const maxPrevVolume = Math.max(...allVolumes.slice(-PERIOD - 1, -1));
+            const currentVolume = allVolumes[allVolumes.length - 1];
+    
+            volSpikeRatio = maVolume === 0 ? 0 : currentVolume / maVolume;
             avgVol = calculateMA(allVolumes, 3) / (calculateMA(allVolumes.slice(0, -3), 10) || 1);
 
             const allNetOBV = historyData.map(d => d.netOBV);
