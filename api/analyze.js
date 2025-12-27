@@ -158,7 +158,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         
-        const PERIOD = (interval === "1h") ? 26 : 20;
+        const PERIOD = (interval === "1h") ? 30 : 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1;
        
         if (historyData.length > MIN_REQUIRED_DATA) {
