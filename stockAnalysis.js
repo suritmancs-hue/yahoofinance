@@ -54,10 +54,6 @@ function calculateAverageLRS(historicalDataArray, period, offset) {
   return count ? sum / count : 0;
 }
 
-function calculateVolumeRatio(currentVolume, maVolume) {
-  return (maVolume === 0 || isNaN(maVolume)) ? 0 : currentVolume / maVolume;
-}
-
 function calculateMaxClose(historicalDataArray, period) {
   if (historicalDataArray.length < period) return 0; 
   const closes = historicalDataArray.slice(-period).map(candle => candle.close);
@@ -74,6 +70,6 @@ function calculateSTDEV(dataArray, period) {
 }
 
 module.exports = {
-  calculateAverage, calculateMA, calculateVolumeRatio, calculateVolatilityRatio,
+  calculateAverage, calculateMA, calculateVolatilityRatio,
   calculateLRS, calculateAverageLRS, calculateMaxClose, calculateSTDEV
 };
