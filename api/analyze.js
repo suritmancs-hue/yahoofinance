@@ -140,6 +140,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             historyData.push({ ...currentCandle, timestamp: convertTimestamp(currentCandle.timestamp), deltaOBV: currentDeltaOBV, netOBV: runningNetOBV });
         }
 
+        const minNetOBV_all = Math.min(...historyData.map(d => d.netOBV));
+        historyData.forEach(d => {
+            d.netOBV = d.netOBV - minNetOBV_all;
+        });
+        runningNetOBV = runningNetOBV - minNetOBV_all;
+
         const backdayInt = parseInt(backday);
         if (!isNaN(backdayInt) && backdayInt > 0) {
             if (historyData.length > backdayInt) historyData.splice(-backdayInt);
@@ -150,7 +156,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         let gapValue = historyData.length >= 2 ? latestCandle.open / previousCandle.close : 0;
         let maxClose = 0, volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
-        let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, spikeNetOBV = 0;
+        let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         
         const PERIOD = (interval === "1h") ? 26 : 20;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1;
@@ -175,8 +181,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const stdevOBV = calculateSTDEV(allNetOBV.slice(0, -1), PERIOD);
             avgNetOBV = stdevOBV !== 0 ? (currentNetOBV_val - maNetOBV) / stdevOBV : 0;
             
-            const prevNetOBV = allNetOBV[allNetOBV.length - 2];
-            spikeNetOBV = prevNetOBV !== 0 ? ((currentNetOBV_val - prevNetOBV) / Math.abs(prevNetOBV)) * 100 : 0;
+            const subsetNetOBV = allNetOBV.slice(-PERIOD - 1, -1);
+            const maxNetOBV_subset = Math.max(...subsetNetOBV);
+            const minNetOBV_subset = Math.min(...subsetNetOBV);
+            strengthNetOBV = (maxNetOBV_subset - minNetOBV_subset) !== 0 
+                ? (currentNetOBV_val - minNetOBV_subset) / (maxNetOBV_subset - minNetOBV_subset) 
+                : 0;
         }
 
         return {
@@ -191,7 +201,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
             avgNetOBV: Number(avgNetOBV.toFixed(4)),
-            spikeNetOBV: Number(spikeNetOBV.toFixed(4))
+            strengthNetOBV: Number(strengthNetOBV.toFixed(4))
         };
     } catch (error) {
         return { ticker, status: "Error", message: error.message };
