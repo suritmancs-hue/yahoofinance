@@ -172,7 +172,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const currentVolume = allVolumes[allVolumes.length - 1];
     
             volSpikeRatio = maVolume === 0 ? 0 : currentVolume / maVolume;
-            avgVol = calculateMA(allVolumes, 3) / (calculateMA(allVolumes.slice(0, -3), 10) || 1);
+            avgVol = calculateMA(allVolumes.slice(0, -1), 3) / calculateMA(allVolumes.slice(0, -4), 10);
 
             const allNetOBV = historyData.map(d => d.netOBV);
             currentDeltaOBV_val = latestCandle.deltaOBV;
