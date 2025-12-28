@@ -41,17 +41,13 @@ function calculateLRS(closesArray, period) {
   return avg === 0 ? 0 : (slope / avg) * 100;
 }
 
-function calculateAverageLRS(historicalDataArray, period, offset) {
-  const end = historicalDataArray.length - offset;
-  if (end < period * 2) return 0;
-  let sum = 0, count = 0;
-  for (let t = end - 1; t >= end - period; t--) {
-    const closesData = historicalDataArray.slice(t - period + 1, t + 1).map(d => d.close);
-    if (closesData.length !== period) continue;
-    sum += calculateLRS(closesData, period);
-    count++;
-  }
-  return count ? sum / count : 0;
+/**
+ * Fungsi rata-rata umum (Bisa untuk Volume atau Array LRS)
+ */
+function calculateAverage(dataArray) {
+  if (dataArray.length === 0) return 0;
+  const validData = dataArray.filter(val => typeof val === 'number' && !isNaN(val));
+  return validData.length === 0 ? 0 : validData.reduce((acc, val) => acc + val, 0) / validData.length;
 }
 
 function calculateMaxClose(historicalDataArray, period) {
@@ -71,5 +67,5 @@ function calculateSTDEV(dataArray, period) {
 
 module.exports = {
   calculateAverage, calculateMA, calculateVolatilityRatio,
-  calculateLRS, calculateAverageLRS, calculateMaxClose, calculateSTDEV
+  calculateLRS, calculateAverage, calculateMaxClose, calculateSTDEV
 };
