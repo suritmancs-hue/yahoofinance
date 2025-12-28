@@ -2,15 +2,15 @@
  * stockAnalysis.js
  */
 
-function calculateAverage(dataArray, period) {
-  if (dataArray.length === 0) return 0;
-  const validData = dataArray.slice(-period);
-  return validData.length === 0 ? 0 : validData.reduce((acc, val) => acc + val, 0) / period;
+function calculateAverage(dataArray) {
+    if (!dataArray || dataArray.length === 0) return 0;
+    const validData = dataArray.filter(val => typeof val === 'number' && !isNaN(val));
+    return validData.length === 0 ? 0 : validData.reduce((acc, val) => acc + val, 0) / validData.length;
 }
 
 function calculateMA(dataArray, period) {
-  if (dataArray.length < period) return 0;
-  return calculateAverage(dataArray.slice(-period));
+    if (dataArray.length < period) return 0;
+    return calculateAverage(dataArray.slice(-period));
 }
 
 function calculateVolatilityRatio(historicalDataArray, period) {
