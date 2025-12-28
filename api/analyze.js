@@ -193,12 +193,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const allNetOBV = historyData.map(d => d.netOBV);
             currentDeltaOBV_val = latestCandle.deltaOBV;
             currentNetOBV_val = latestCandle.netOBV;
-            
-            const maNetOBV = calculateMA(allNetOBV.slice(0, -1), PERIOD);
-            const stdevOBV = calculateSTDEV(allNetOBV.slice(0, -1), PERIOD);
+
+            const subsetNetOBV = allNetOBV.slice(-PERIOD - 1, -1);
+  
+            const maNetOBV = calculateMA(subsetNetOBV, PERIOD);
+            const stdevOBV = calculateSTDEV(subsetNetOBV, PERIOD);
             avgNetOBV = stdevOBV !== 0 ? (currentNetOBV_val - maNetOBV) / stdevOBV : 0;
             
-            const subsetNetOBV = allNetOBV.slice(-PERIOD - 1, -1);
             const maxNetOBV_subset = Math.max(...subsetNetOBV);
             const minNetOBV_subset = Math.min(...subsetNetOBV);
             strengthNetOBV = (maxNetOBV_subset - minNetOBV_subset) !== 0 
