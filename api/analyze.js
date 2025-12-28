@@ -7,7 +7,7 @@ const { 
 } = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
-const OFFSET = 2;
+const OFFSET = 3;
 
 function convertTimestamp(unixSeconds) {
     if (!unixSeconds) return '';
