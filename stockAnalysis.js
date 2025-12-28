@@ -57,6 +57,10 @@ function calculateSTDEV(dataArray, period) {
 }
 
 module.exports = {
-  calculateAverage, calculateMA, calculateVolatilityRatio,
-  calculateLRS, calculateAverage, calculateMaxClose, calculateSTDEV
+  calculateAverage,
+  calculateMA, 
+  calculateVolatilityRatio,
+  calculateLRS, 
+  calculateMaxClose, 
+  calculateSTDEV
 };
