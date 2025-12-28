@@ -73,24 +73,32 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         
             let currentDeltaOBV = 0;
             subCandlesInRange.forEach((sub, idx) => {
-                const subOpen = sub.open ?? sub.close;
-                const subClose = sub.close;
-                const subHigh = sub.high ?? Math.max(subOpen, subClose);
-                const subLow = sub.low ?? Math.min(subOpen, subClose);
-                const syncedVol = (sub.volume || 0) * scaleFactor;
-                
-                if (subClose !== subOpen) {
-                    const bodyAbs = Math.abs(subClose - subOpen);
-                    const hlRange = Math.max(1, (subHigh - subLow));
-                    const multiplier = bodyAbs / hlRange;
-                    currentDeltaOBV += syncedVol * multiplier * (subClose > subOpen ? 1 : -1);
-                } else {
-                    let prevClose = idx > 0 ? subCandlesInRange[idx - 1].close : (i > 0 ? mainCandles[i - 1].close : null);
-                    if (prevClose !== null) {
-                        if (subClose > prevClose) currentDeltaOBV += syncedVol;
-                        else if (subClose < prevClose) currentDeltaOBV -= syncedVol;
+                const subOpen = sub.open;   // AC3
+                const subHigh = sub.high;   // AD3
+                const subLow = sub.low;     // AE3
+                const subClose = sub.close; // AF3
+                const syncedVol = (sub.volume || 0) * scaleFactor; // AG3
+            
+                const range = subHigh - subLow; // (AD3 - AE3)
+                let currentDelta = 0;
+            
+                // IF(AD3 = AE3, 0, ...) -> Jika High sama dengan Low, Delta = 0
+                if (range > 0) {
+                    if (subClose > subOpen) {
+                        // IF(AF3 > AC3, AG3 * (ABS(AF3 - AC3) / (AD3 - AE3)))
+                        currentDelta = syncedVol * (Math.abs(subClose - subOpen) / range);
+                    } else if (subClose < subOpen) {
+                        // IF(AF3 < AC3, -AG3 * (ABS(AF3 - AC3) / (AD3 - AE3)))
+                        currentDelta = -syncedVol * (Math.abs(subClose - subOpen) / range);
+                    } else {
+                        // Jika Close = Open, hasilnya 0 (sesuai logika IF terdalam)
+                        currentDelta = 0;
                     }
+                } else {
+                    currentDelta = 0;
                 }
+            
+                currentDeltaOBV += currentDelta;
             });
 
             runningNetOBV += currentDeltaOBV;
