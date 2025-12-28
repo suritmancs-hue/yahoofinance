@@ -94,6 +94,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             });
 
             runningNetOBV += currentDeltaOBV;
+            console.log(`normNetOBV : ${runningNetOBV}`);
             historyData.push({ 
                 ...currentCandle, 
                 timestamp: convertTimestamp(currentCandle.timestamp), 
@@ -133,7 +134,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const historySlice = normNetOBV.slice(sliceStart, sliceEnd);
 
             currentDeltaOBV_val = historyData[n - 1].deltaOBV;
-            currentNetOBV_val   = normNetOBV[n - 1]; // L128
+            currentNetOBV_val   = normNetOBV[n - 1];
 
             // Statistik Histori
             const mean = calculateAverage(historySlice);
