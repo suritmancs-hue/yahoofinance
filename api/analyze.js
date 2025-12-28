@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio,
-  calculateAverageLRS, calculateMaxClose, calculateSTDEV
+  calculateAverage, calculateMaxClose, calculateSTDEV
 } = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
@@ -164,7 +164,21 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         if (historyData.length > MIN_REQUIRED_DATA) {
             maxClose = calculateMaxClose(historyData.slice(0, -1), PERIOD);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
-            avgLRS = Math.abs(calculateAverageLRS(historyData, Math.floor((PERIOD + 1) / 2), OFFSET));
+
+            const arrayLRS = [];
+            const endIdx = historyData.length - OFFSET;
+            const avgCount = Math.floor((PERIOD + 1) / 2);
+            for (let t = endIdx - 1; t >= endIdx - avgCount; t--) {
+                const windowCloses = historyData
+                    .slice(t - PERIOD + 1, t + 1)
+                    .map(d => d.close);
+                if (windowCloses.length === PERIOD) {
+                    const lrsValue = calculateLRS(windowCloses, PERIOD);
+                    arrayLRS.push(lrsValue);
+                }
+            }
+          
+            avgLRS = Math.abs(calculateAverage(arrayLRS);
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
