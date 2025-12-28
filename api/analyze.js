@@ -164,7 +164,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         if (historyData.length > MIN_REQUIRED_DATA) {
             maxClose = calculateMaxClose(historyData.slice(0, -1), PERIOD);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
-            avgLRS = calculateAverageLRS(historyData, Math.floor((PERIOD + 1) / 2), OFFSET);
+            avgLRS = Math.abs(calculateAverageLRS(historyData, Math.floor((PERIOD - 1) / 2), OFFSET));
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
