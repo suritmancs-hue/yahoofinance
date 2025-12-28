@@ -195,6 +195,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             currentNetOBV_val = latestCandle.netOBV;
 
             const subsetNetOBV = allNetOBV.slice(-PERIOD - 1, -1);
+
+                console.log(subsetNetOBV);
   
             const maNetOBV = calculateMA(subsetNetOBV, PERIOD);
             const stdevOBV = calculateSTDEV(subsetNetOBV, subsetNetOBV.length);
