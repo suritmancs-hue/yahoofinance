@@ -144,7 +144,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         historyData.forEach(d => {
             d.netOBV = d.netOBV - minNetOBV_all;
         });
-        runningNetOBV = runningNetOBV - minNetOBV_all;
+        runningNetOBV = runningNetOBV - minNetOBV_all;  //Normal net OBV
 
         const backdayInt = parseInt(backday);
         if (!isNaN(backdayInt) && backdayInt > 0) {
@@ -197,7 +197,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const subsetNetOBV = allNetOBV.slice(-PERIOD - 1, -1);
   
             const maNetOBV = calculateMA(subsetNetOBV, PERIOD);
-            const stdevOBV = calculateSTDEV(subsetNetOBV, PERIOD);
+            const stdevOBV = calculateSTDEV(subsetNetOBV, subsetNetOBV.length);
             avgNetOBV = stdevOBV !== 0 ? (currentNetOBV_val - maNetOBV) / stdevOBV : 0;
             
             const maxNetOBV_subset = Math.max(...subsetNetOBV);
