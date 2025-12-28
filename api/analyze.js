@@ -99,6 +99,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 }
             
                 currentDeltaOBV += currentDelta;
+                console.log(`currentDelta_sub : ${currentDelta}`);
             });
 
             runningNetOBV += currentDeltaOBV;
