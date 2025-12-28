@@ -66,7 +66,7 @@ function calculateSTDEV(dataArray, period) {
   if (n < 2) return 0;
   const avg = relevantData.reduce((a, b) => a + b, 0) / n;
   const sumSquareDiffs = relevantData.reduce((a, b) => a + Math.pow(b - avg, 2), 0);
-  return Math.sqrt(sumSquareDiffs / (n - 1));
+  return Math.sqrt(sumSquareDiffs / n);
 }
 
 module.exports = {
