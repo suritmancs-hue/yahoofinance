@@ -94,6 +94,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             });
 
             runningNetOBV += currentDeltaOBV;
+            console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
             console.log(`runningNetOBV : ${runningNetOBV}`);
             historyData.push({ 
                 ...currentCandle, 
