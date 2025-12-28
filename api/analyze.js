@@ -161,9 +161,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
             volSpikeRatio = maVolume === 0 ? 0 : allVolumes[n - 1] / maVolume;
             
-            const avg_5 = allVolumes.slice(n - 5).reduce((a, b) => a + b, 0) / 5;
-            const avg_15 = allVolumes.slice(n - 20, n - 5).reduce((a, b) => a + b, 0) / 15;
-            avgVol = avg_15 > 0 ? avg_5 / avg_15 : 1;
+            const ma3 = calculateMA(allVolumes.slice(0, -1), 3);
+            const ma10 = calculateMA(allVolumes.slice(0, -4), 10);
+            avgVol = ma10 === 0 ? 0 : ma3 / ma10;
         }
 
         return {
