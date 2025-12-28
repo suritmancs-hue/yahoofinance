@@ -83,7 +83,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 let currentDelta = 0;
             
                 // IF(AD3 = AE3, 0, ...) -> Jika High sama dengan Low, Delta = 0
-                if (range > 0) {
+                if (subHigh !== subLow) {
                     if (subClose > subOpen) {
                         // IF(AF3 > AC3, AG3 * (ABS(AF3 - AC3) / (AD3 - AE3)))
                         currentDelta = syncedVol * (Math.abs(subClose - subOpen) / range);
