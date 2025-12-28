@@ -16,7 +16,7 @@ function convertTimestamp(unixSeconds) {
 }
 
 async function processSingleTicker(ticker, interval, range, backday = 0) {
-    if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
+    if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
     let subInterval = interval === '1h' ? '15m' : '1h';
     let defaultRange = range || (interval === '1h' ? '10d' : '3mo');
@@ -191,10 +191,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
 
             const allNetOBV = historyData.map(d => d.netOBV);
-            currentDeltaOBV_val = latestCandle.deltaOBV;
-            currentNetOBV_val = latestCandle.netOBV;
+            const currentIdx = historyData.length - 1;
+            currentDeltaOBV_val = historyData[currentIdx].deltaOBV;
+            currentNetOBV_val   = historyData[currentIdx].netOBV;
 
-            const subsetNetOBV = allNetOBV.slice(-PERIOD - 1, -1);
+            const startIdx = currentIdx - PERIOD;
+            const endIdx   = currentIdx; // EXCLUSIVE (tidak termasuk current)
+            const subsetNetOBV = allNetOBV.slice(startIdx, endIdx);
 
                 console.log(subsetNetOBV);
   
