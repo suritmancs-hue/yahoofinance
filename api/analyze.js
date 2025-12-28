@@ -106,6 +106,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const gMin = Math.min(...historyData.map(d => d.netOBV));
         const normNetOBV = historyData.map(d => d.netOBV - gMin);
 
+        console.log(`normNetOBV : ${normNetOBV}`);
+
         const backdayInt = parseInt(backday);
         if (!isNaN(backdayInt) && backdayInt > 0) {
             if (normNetOBV.length > backdayInt) {
