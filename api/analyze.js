@@ -2,7 +2,7 @@
  * analyze.js
  */
 const { 
-  calculateMA, calculateVolatilityRatio,
+  calculateMA, calculateVolatilityRatio, calculateLRS,
   calculateAverage, calculateMaxClose, calculateSTDEV
 } = require('../stockAnalysis');
 
@@ -159,6 +159,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         
         const PERIOD = (interval === "1h") ? 35 : 25;
+        const avgCount = Math.floor((PERIOD + 1) / 2);
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1;
        
         if (historyData.length > MIN_REQUIRED_DATA) {
@@ -177,7 +178,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 }
             }
           
-            avgLRS = Math.abs(calculateAverage(arrayLRS, Math.floor((PERIOD + 1) / 2));
+            avgLRS = arrayLRS.length > 0 ? Math.abs(calculateAverage(arrayLRS)) : 0;
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
@@ -185,7 +186,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const currentVolume = allVolumes[allVolumes.length - 1];
     
             volSpikeRatio = maVolume === 0 ? 0 : currentVolume / maVolume;
-            avgVol = calculateMA(allVolumes.slice(0, -1), 3) / calculateMA(allVolumes.slice(0, -4), 10);
+            const ma3 = calculateMA(allVolumes.slice(0, -1), 3);
+            const ma10 = calculateMA(allVolumes.slice(0, -4), 10);
+            avgVol = ma10 === 0 ? 0 : ma3 / ma10;
 
             const allNetOBV = historyData.map(d => d.netOBV);
             currentDeltaOBV_val = latestCandle.deltaOBV;
