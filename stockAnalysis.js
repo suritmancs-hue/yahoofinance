@@ -2,10 +2,10 @@
  * stockAnalysis.js
  */
 
-function calculateAverage(dataArray) {
+function calculateAverage(dataArray, period) {
   if (dataArray.length === 0) return 0;
-  const validData = dataArray.filter(val => typeof val === 'number' && !isNaN(val));
-  return validData.length === 0 ? 0 : validData.reduce((acc, val) => acc + val, 0) / validData.length;
+  const validData = dataArray.slice(-period);
+  return validData.length === 0 ? 0 : validData.reduce((acc, val) => acc + val, 0) / period;
 }
 
 function calculateMA(dataArray, period) {
