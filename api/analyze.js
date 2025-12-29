@@ -18,8 +18,8 @@ function convertTimestamp(unixSeconds) {
 async function processSingleTicker(ticker, interval, range, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
-    let subInterval = interval === '1h' ? '15m' : '1h';
-    let defaultRange = range || (interval === '1h' ? '10d' : '3mo');
+    let subInterval = interval === '15m' ? '5m' : '1h';
+    let defaultRange = range || (interval === '15m' ? '10d' : '3mo');
 
     try {
         const [mainRes, subRes] = await Promise.all([
@@ -137,7 +137,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         
-        const PERIOD = (interval === "1h") ? 35 : 25;
+        const PERIOD = (interval === "15m") ? 35 : 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
 
         if (n > MIN_REQUIRED_DATA) {
