@@ -35,18 +35,14 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         if (!mainResult || !subResult) return { ticker, status: "Error", message: "Data Empty" };
 
         const subQuote = subResult.indicators.quote[0];
-        const subCandles = subResult.timestamp.map((ts, i) => ({
+        let subCandles = subResult.timestamp.map((ts, i) => ({
           timestamp: ts,
           open: subQuote.open[i],
           high: subQuote.high[i],
           low: subQuote.low[i],
           close: subQuote.close[i],
           volume: subQuote.volume[i] || 0
-        })).filter((d) => {
-            const isValidPrice = typeof d.close === 'number' && !isNaN(d.close);
-            const dateObj = new Date(d.timestamp * 1000);
-            return isValidPrice && dateObj.getUTCSeconds() === 0;
-        });
+        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
 
         const mainQuoteRaw = mainResult.indicators.quote[0];
         const mainCandles = mainResult.timestamp.map((ts, i) => ({
