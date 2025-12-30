@@ -58,6 +58,52 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volume: mainQuoteRaw.volume[i] || 0
         })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
 
+        // --- 1. Potong mainCandles berdasarkan backday ---
+        const backdayInt = parseInt(backday);
+        if (!isNaN(backdayInt) && backdayInt > 0 && mainCandles.length > backdayInt) {
+            mainCandles.splice(-backdayInt);
+        }
+        
+        // --- 2. Sinkronisasi subCandles berdasarkan logika interval ---
+        if (mainCandles.length > 0) {
+            const lastMainTs = mainCandles[mainCandles.length - 1].timestamp;
+        
+            if (interval === '15m') {
+                /**
+                 * Logika 15m: Hanya ambil 3 candle 5m (00, 05, 10). Data 10.15 dan seterusnya harus dibuang karena sudah masuk candle 15m berikutnya.
+                 */
+                const limit15m = lastMainTs + (15 * 60); // Tambah 15 menit
+                subCandles = subCandles.filter(s => s.timestamp < limit15m);
+                
+            } else if (interval === '1d') {
+                /**
+                 * Logika 1d: Potong jika tanggal sudah berbeda. Kita gunakan objek Date untuk memastikan hari yang sama.
+                 */
+                const d = new Date(lastMainTs * 1000);
+                const lastDateStr = d.getUTCFullYear() + "-" + d.getUTCMonth() + "-" + d.getUTCDate();
+                subCandles = subCandles.filter(s => {
+                    const sd = new Date(s.timestamp * 1000);
+                    const subDateStr = sd.getUTCFullYear() + "-" + sd.getUTCMonth() + "-" + sd.getUTCDate();
+                    return subDateStr === lastDateStr;
+                });
+            }
+        }
+
+        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
+        const n = mainCandles.length;
+        if (n < 2) {
+            return { ticker, status: "Filtered" };
+        }
+        const currentCandle = mainCandles[n - 1];
+        const previousCandle = mainCandles[n - 2];
+
+        // Syarat: Close > Prev Close DAN Close > Open
+        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open);
+        if (!isBullish) {
+            return { ticker, status: "Filtered" };
+        }
+
+        // --- LANJUT KE PERHITUNGAN
       
         const historyData = [];
         let runningNetOBV = 0;
@@ -121,29 +167,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         //console.log(`normNetOBV : ${normNetOBV}`);
 
-        const backdayInt = parseInt(backday);
-        if (!isNaN(backdayInt) && backdayInt > 0) {
-            if (normNetOBV.length > backdayInt) {
-                normNetOBV.splice(-backdayInt);
-                historyData.splice(-backdayInt);
-            }
-        }
-
-        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
-        const n = historyData.length;
-        if (n < 2) {
-            return { ticker, status: "Filtered" };
-        }
-        const currentCandle = historyData[n - 1];
-        const previousCandle = historyData[n - 2];
-
-        // Syarat: Close > Prev Close DAN Close > Open
-        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open);
-        if (!isBullish) {
-            return { ticker, status: "Filtered" };
-        }
-
-        // --- LANJUT KE KALKULASI KOMPLEKS ---
         const latestCandle = historyData[n - 1];
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
