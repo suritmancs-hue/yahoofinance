@@ -97,12 +97,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 }
             
                 currentDeltaOBV += currentDelta;
-                console.log(`currentDelta_sub : ${currentDelta}`);
+                //console.log(`currentDelta_sub : ${currentDelta}`);
             });
 
             runningNetOBV += currentDeltaOBV;
-            console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
-            console.log(`runningNetOBV : ${runningNetOBV}`);
+            //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
+            //console.log(`runningNetOBV : ${runningNetOBV}`);
             historyData.push({ 
                 ...currentCandle, 
                 timestamp: convertTimestamp(currentCandle.timestamp), 
@@ -119,7 +119,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             d.netOBV = normNetOBV[i];
         });
 
-        console.log(`normNetOBV : ${normNetOBV}`);
+        //console.log(`normNetOBV : ${normNetOBV}`);
 
         const backdayInt = parseInt(backday);
         if (!isNaN(backdayInt) && backdayInt > 0) {
