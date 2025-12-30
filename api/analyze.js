@@ -64,28 +64,37 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             mainCandles.splice(-backdayInt);
         }
         
-        // --- 2. Sinkronisasi subCandles berdasarkan logika interval ---
+        // --- 2. Sinkronisasi subCandles (Truncate Logic) ---
         if (mainCandles.length > 0) {
-            const lastMainTs = mainCandles[mainCandles.length - 1].timestamp;
+            const lastMainCandle = mainCandles[mainCandles.length - 1];
+            const lastMainTs = lastMainCandle.timestamp;
         
             if (interval === '15m') {
                 /**
-                 * Logika 15m: Hanya ambil 3 candle 5m (00, 05, 10). Data 10.15 dan seterusnya harus dibuang karena sudah masuk candle 15m berikutnya.
+                 * Logika 15m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
+                 * Jadi kita buang semua subCandles yang >= 10.15.
                  */
-                const limit15m = lastMainTs + (15 * 60); // Tambah 15 menit
+                const limit15m = lastMainTs + (15 * 60); 
                 subCandles = subCandles.filter(s => s.timestamp < limit15m);
-                
+        
             } else if (interval === '1d') {
                 /**
-                 * Logika 1d: Potong jika tanggal sudah berbeda. Kita gunakan objek Date untuk memastikan hari yang sama.
+                 * Logika 1D: Batas akhir adalah akhir hari dari main candle terakhir.
+                 * Kita buang subCandles yang sudah berganti tanggal dari main candle terakhir.
                  */
                 const d = new Date(lastMainTs * 1000);
-                const lastDateStr = d.getUTCFullYear() + "-" + d.getUTCMonth() + "-" + d.getUTCDate();
-                subCandles = subCandles.filter(s => {
-                    const sd = new Date(s.timestamp * 1000);
-                    const subDateStr = sd.getUTCFullYear() + "-" + sd.getUTCMonth() + "-" + sd.getUTCDate();
-                    return subDateStr === lastDateStr;
-                });
+                
+                // Buat batas akhir hari (pukul 23:59:59) untuk tanggal tersebut
+                const endOfDay = new Date(Date.UTC(
+                    d.getUTCFullYear(), 
+                    d.getUTCMonth(), 
+                    d.getUTCDate(), 
+                    23, 59, 59
+                )).getTime() / 1000;
+        
+                // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
+                // Data dari awal histori hingga akhir hari terakhir tetap aman.
+                subCandles = subCandles.filter(s => s.timestamp <= endOfDay);
             }
         }
 
