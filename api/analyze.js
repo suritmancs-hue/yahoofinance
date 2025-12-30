@@ -58,6 +58,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volume: mainQuoteRaw.volume[i] || 0
         })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
 
+      
         const historyData = [];
         let runningNetOBV = 0;
 
@@ -73,25 +74,22 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         
             let currentDeltaOBV = 0;
             subCandlesInRange.forEach((sub, idx) => {
-                const subOpen = sub.open;   // AC3
-                const subHigh = sub.high;   // AD3
-                const subLow = sub.low;     // AE3
-                const subClose = sub.close; // AF3
-                const syncedVol = (sub.volume || 0) * scaleFactor; // AG3
+                const subOpen = sub.open;
+                const subHigh = sub.high;
+                const subLow = sub.low;
+                const subClose = sub.close;
+                const syncedVol = (sub.volume || 0) * scaleFactor
             
-                const range = subHigh - subLow; // (AD3 - AE3)
+                const range = subHigh - subLow;
                 let currentDelta = 0;
             
-                // IF(AD3 = AE3, 0, ...) -> Jika High sama dengan Low, Delta = 0
+                // Jika High sama dengan Low, Delta = 0
                 if (subHigh !== subLow) {
                     if (subClose > subOpen) {
-                        // IF(AF3 > AC3, AG3 * (ABS(AF3 - AC3) / (AD3 - AE3)))
                         currentDelta = syncedVol * (Math.abs(subClose - subOpen) / range);
                     } else if (subClose < subOpen) {
-                        // IF(AF3 < AC3, -AG3 * (ABS(AF3 - AC3) / (AD3 - AE3)))
                         currentDelta = -syncedVol * (Math.abs(subClose - subOpen) / range);
                     } else {
-                        // Jika Close = Open, hasilnya 0 (sesuai logika IF terdalam)
                         currentDelta = 0;
                     }
                 } else {
@@ -131,18 +129,32 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             }
         }
 
-        const n = normNetOBV.length;
+        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
+        const n = historyData.length;
+        if (n < 2) {
+            return { ticker, status: "Filtered" };
+        }
+        const currentCandle = historyData[n - 1];
+        const previousCandle = historyData[n - 2];
+
+        // Syarat: Close > Prev Close DAN Close > Open
+        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open);
+        if (!isBullish) {
+            return { ticker, status: "Filtered" };
+        }
+
+        // --- LANJUT KE KALKULASI KOMPLEKS ---
         const latestCandle = historyData[n - 1];
-        
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
+        let maxClose =0;
         
         const PERIOD = (interval === "15m") ? 35 : 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
 
         if (n > MIN_REQUIRED_DATA) {
             // --- TEKNIK SLICING IDENTIK DENGAN AD ---
-            // Mengambil histori (L103:L127) dengan membuang data terakhir (n-1)
+            // Mengambil histori dengan membuang data terakhir (n-1)
             const sliceStart = n - (PERIOD + 1);
             const sliceEnd = n - 1;
             const historySlice = normNetOBV.slice(sliceStart, sliceEnd);
