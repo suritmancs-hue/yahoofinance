@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
-  calculateAverage, calculateMaxClose, calculateSTDEV
+  calculateAverage, calculateMaxClose, calculateSTDEV, calculateOpenClose
 } = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
@@ -102,8 +102,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const currentCandle = mainCandles[n - 1];
         const previousCandle = mainCandles[n - 2];
 
-        // Syarat: Close > Prev Close DAN Close > Open
-        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open);
+        // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
+        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open && (currentCandle.open > 1000) );
         if (!isBullish) {
             return { ticker, status: "Filtered" };
         }
@@ -175,7 +175,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const latestCandle = historyData[n - 1];
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
-        let maxClose =0;
+        let maxClose = 0, ocfilter = 0;
         
         const PERIOD = (interval === "15m") ? 35 : 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
@@ -221,7 +221,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const ma3 = calculateMA(allVolumes.slice(0, -1), 3);
             const ma10 = calculateMA(allVolumes.slice(0, -4), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
+
+            ocfilter = calculateOpenClose(historyData.slice(0, -1), PERIOD);
         }
+ 
 
         return {
             status: "Sukses", ticker,
@@ -235,7 +238,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
             avgNetOBV: Number(avgNetOBV.toFixed(4)),
-            strengthNetOBV: Number(strengthNetOBV.toFixed(4))
+            strengthNetOBV: Number(strengthNetOBV.toFixed(4)),
+            ocfilter: Number(ocfilter.toFixed(0))
         };
     } catch (error) {
         return { ticker, status: "Error", message: error.message };
