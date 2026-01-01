@@ -48,11 +48,16 @@ function calculateMaxClose(historicalDataArray, period) {
 }
 
 function calculateOpenClose(historicalDataArray, period) {
-  const targetArray = period + 1;
-  if (historicalDataArray.length < targetArray) return 0; 
-  const subset = historicalDataArray.slice(-targetArray);
+  const targetArraySize = period + 1;
+  const dataWithoutLast = historicalDataArray.slice(0, -1);
+  
+  if (dataWithoutLast.length < targetArraySize) return 0;
+  
+  const subset = dataWithoutLast.slice(-targetArraySize);
   let oc = 0;
-  for (let i = 1; i < subset.length - 1; i++) {
+
+  // Loop akan berjalan tepat sesuai jumlah 'period'
+  for (let i = 1; i < subset.length; i++) {
       const currentOpen = subset[i].open;
       const currentClose = subset[i].close;
       const prevOpen = subset[i-1].open;
@@ -62,7 +67,7 @@ function calculateOpenClose(historicalDataArray, period) {
         oc += 1;
       }
   }
-  return oc;
+  return oc;
 }
 
 function calculateSTDEV(dataArray, period) {
