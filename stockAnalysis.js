@@ -47,6 +47,23 @@ function calculateMaxClose(historicalDataArray, period) {
   return Math.max(...closes);
 }
 
+function calculateOpenClose(historicalDataArray, period) {
+  const targetArray = period + 1;
+  if (historicalDataArray.length < targetArray) return 0; 
+  const subset = historicalDataArray.slice(-targetArray);
+  let oc = 0;
+  for (let i = 1; i < subset.length - 1; i++) {
+      const currentOpen = subset[i].open;
+      const currentClose = subset[i].close;
+      const prevClose = subset[i-1].close;
+  
+      if ((currentOpen === currentClose) || (prevClose === currentClose)) {
+        oc += 1;
+      }
+  }
+  return oc;
+}
+
 function calculateSTDEV(dataArray, period) {
   const relevantData = dataArray.slice(-period);
   const n = relevantData.length;
@@ -62,5 +79,6 @@ module.exports = {
   calculateVolatilityRatio,
   calculateLRS, 
   calculateMaxClose, 
+  calculateOpenClose, 
   calculateSTDEV
 };
