@@ -1,0 +1,250 @@
+/**
+ * analis_1D.js
+ */
+const { 
+  calculateMA, calculateVolatilityRatio, calculateLRS,
+  calculateAverage, calculateMaxClose, calculateSTDEV
+} = require('../stockAnalysis');
+
+const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
+const OFFSET = 3;
+
+function convertTimestamp(unixSeconds) {
+    if (!unixSeconds) return '';
+    const date = new Date((unixSeconds + UTC_OFFSET_SECONDS) * 1000);
+    return date.toUTCString().replace('GMT', 'WITA'); 
+}
+
+async function processSingleTicker(ticker, interval, range, backday = 0) {
+    if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
+
+    let subInterval = interval === '15m' ? '5m' : '1h';
+    let defaultRange = range || (interval === '15m' ? '10d' : '3mo');
+
+    try {
+        const [mainRes, subRes] = await Promise.all([
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${defaultRange}`),
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${defaultRange}`)
+        ]);
+
+        const mainData = await mainRes.json();
+        const subData = await subRes.json();
+        const mainResult = mainData?.chart?.result?.[0];
+        const subResult = subData?.chart?.result?.[0];
+
+        if (!mainResult || !subResult) return { ticker, status: "Error", message: "Data Empty" };
+
+        const subQuote = subResult.indicators.quote[0];
+        let subCandles = subResult.timestamp.map((ts, i) => ({
+          timestamp: ts,
+          open: subQuote.open[i],
+          high: subQuote.high[i],
+          low: subQuote.low[i],
+          close: subQuote.close[i],
+          volume: subQuote.volume[i] || 0
+        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
+
+        const mainQuoteRaw = mainResult.indicators.quote[0];
+        const mainCandles = mainResult.timestamp.map((ts, i) => ({
+            timestamp: ts,
+            open: mainQuoteRaw.open[i],
+            high: mainQuoteRaw.high[i],
+            low: mainQuoteRaw.low[i],
+            close: mainQuoteRaw.close[i],
+            volume: mainQuoteRaw.volume[i] || 0
+        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
+
+        // --- 1. Potong mainCandles berdasarkan backday ---
+        const backdayInt = parseInt(backday);
+        if (!isNaN(backdayInt) && backdayInt > 0 && mainCandles.length > backdayInt) {
+            mainCandles.splice(-backdayInt);
+        }
+        
+        // --- 2. Sinkronisasi subCandles (Truncate Logic) ---
+        if (mainCandles.length > 0) {
+            const lastMainCandle = mainCandles[mainCandles.length - 1];
+            const lastMainTs = lastMainCandle.timestamp;
+        
+            if (interval === '15m') {
+                /**
+                 * Logika 15m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
+                 * Jadi kita buang semua subCandles yang >= 10.15.
+                 */
+                const limit15m = lastMainTs + (15 * 60); 
+                subCandles = subCandles.filter(s => s.timestamp < limit15m);
+        
+            } else if (interval === '1d') {
+                /**
+                 * Logika 1D: Batas akhir adalah akhir hari dari main candle terakhir.
+                 * Kita buang subCandles yang sudah berganti tanggal dari main candle terakhir.
+                 */
+                const d = new Date(lastMainTs * 1000);
+                
+                // Buat batas akhir hari (pukul 23:59:59) untuk tanggal tersebut
+                const endOfDay = new Date(Date.UTC(
+                    d.getUTCFullYear(), 
+                    d.getUTCMonth(), 
+                    d.getUTCDate(), 
+                    23, 59, 59
+                )).getTime() / 1000;
+        
+                // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
+                // Data dari awal histori hingga akhir hari terakhir tetap aman.
+                subCandles = subCandles.filter(s => s.timestamp <= endOfDay);
+            }
+        }
+
+        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
+        const n = mainCandles.length;
+        if (n < 2) {
+            return { ticker, status: "Filtered" };
+        }
+        const currentCandle = mainCandles[n - 1];
+        const previousCandle = mainCandles[n - 2];
+
+        // Syarat: Close > Prev Close DAN Close > Open
+        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open);
+        if (!isBullish) {
+            return { ticker, status: "Filtered" };
+        }
+
+        // --- LANJUT KE PERHITUNGAN
+      
+        const historyData = [];
+        let runningNetOBV = 0;
+
+        for (let i = 0; i < mainCandles.length; i++) {
+            const currentCandle = mainCandles[i];
+            const nextCandle = mainCandles[i + 1];
+            const intervalStep = (mainCandles.length > 1) ? (mainCandles[1].timestamp - mainCandles[0].timestamp) : 3600;
+            const nextMainTs = nextCandle ? nextCandle.timestamp : (currentCandle.timestamp + intervalStep);
+            
+            const subCandlesInRange = subCandles.filter(sub => sub.timestamp >= currentCandle.timestamp && sub.timestamp < nextMainTs);
+            const totalSubVolume = subCandlesInRange.reduce((acc, curr) => acc + (curr.volume || 0), 0);
+            const scaleFactor = (totalSubVolume > 0 && currentCandle.volume > 0) ? currentCandle.volume / totalSubVolume : 1;
+        
+            let currentDeltaOBV = 0;
+            subCandlesInRange.forEach((sub, idx) => {
+                const subOpen = sub.open;
+                const subHigh = sub.high;
+                const subLow = sub.low;
+                const subClose = sub.close;
+                const syncedVol = (sub.volume || 0) * scaleFactor
+            
+                const range = subHigh - subLow;
+                let currentDelta = 0;
+            
+                // Jika High sama dengan Low, Delta = 0
+                if (subHigh !== subLow) {
+                    if (subClose > subOpen) {
+                        currentDelta = syncedVol * (Math.abs(subClose - subOpen) / range);
+                    } else if (subClose < subOpen) {
+                        currentDelta = -syncedVol * (Math.abs(subClose - subOpen) / range);
+                    } else {
+                        currentDelta = 0;
+                    }
+                } else {
+                    currentDelta = 0;
+                }
+            
+                currentDeltaOBV += currentDelta;
+                //console.log(`currentDelta_sub : ${currentDelta}`);
+            });
+
+            runningNetOBV += currentDeltaOBV;
+            //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
+            //console.log(`runningNetOBV : ${runningNetOBV}`);
+            historyData.push({ 
+                ...currentCandle, 
+                timestamp: convertTimestamp(currentCandle.timestamp), 
+                deltaOBV: currentDeltaOBV, 
+                netOBV: runningNetOBV 
+            });
+        }
+
+        // --- Normalisasi Global Net OBV (Sesuai Teknik gMin di AD) ---
+        const rawNetValues = historyData.map(d => d.netOBV);
+        const gMin = Math.min(...rawNetValues);
+        const normNetOBV = rawNetValues.map(v => v - gMin);
+        historyData.forEach((d, i) => {
+            d.netOBV = normNetOBV[i];
+        });
+
+        //console.log(`normNetOBV : ${normNetOBV}`);
+
+        const latestCandle = historyData[n - 1];
+        let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
+        let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
+        let maxClose =0;
+        
+        const PERIOD = (interval === "15m") ? 35 : 25;
+        const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
+
+        if (n > MIN_REQUIRED_DATA) {
+            // --- TEKNIK SLICING IDENTIK DENGAN AD ---
+            // Mengambil histori dengan membuang data terakhir (n-1)
+            const sliceStart = n - (PERIOD + 1);
+            const sliceEnd = n - 1;
+            const historySlice = normNetOBV.slice(sliceStart, sliceEnd);
+
+            currentDeltaOBV_val = historyData[n - 1].deltaOBV;
+            currentNetOBV_val   = normNetOBV[normNetOBV.length - 1];
+
+            // Statistik Histori
+            const mean = calculateAverage(historySlice);
+            const variance = historySlice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / historySlice.length;
+            const stdev = Math.sqrt(variance);
+            const minH = Math.min(...historySlice);
+            const maxH = Math.max(...historySlice);
+
+            // Perhitungan Indikator (Identik AD)
+            avgNetOBV = stdev !== 0 ? (currentNetOBV_val - mean) / stdev : 0;
+            strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
+
+            // --- Indikator Lainnya ---
+            maxClose = calculateMaxClose(historyData.slice(0, -1), PERIOD);
+            volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
+
+            const arrayLRS = [];
+            const lrsEnd = n - OFFSET;
+            const avgCount = Math.floor((PERIOD + 1) / 2);
+            for (let t = lrsEnd - 1; t >= lrsEnd - avgCount; t--) {
+                const windowCloses = historyData.slice(t - PERIOD + 1, t + 1).map(d => d.close);
+                if (windowCloses.length === PERIOD) arrayLRS.push(calculateLRS(windowCloses, PERIOD));
+            }
+            avgLRS = arrayLRS.length > 0 ? Math.abs(calculateAverage(arrayLRS)) : 0;
+
+            const allVolumes = historyData.map(d => d.volume);
+            const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
+            volSpikeRatio = maVolume === 0 ? 0 : allVolumes[n - 1] / maVolume;
+            
+            const ma3 = calculateMA(allVolumes.slice(0, -1), 3);
+            const ma10 = calculateMA(allVolumes.slice(0, -4), 10);
+            avgVol = ma10 === 0 ? 0 : ma3 / ma10;
+        }
+
+        return {
+            status: "Sukses", ticker,
+            volSpikeRatio: Number(volSpikeRatio.toFixed(4)),
+            avgVol: Number(avgVol.toFixed(4)),
+            volatilityRatio: Number(volatilityRatio.toFixed(4)),
+            lrs: Number(avgLRS.toFixed(4)),
+            lastData: latestCandle,
+            gapValue: Number((latestCandle.open / historyData[n-2].close).toFixed(4)),
+            maxClose: Number(maxClose.toFixed(2)),
+            currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
+            currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
+            avgNetOBV: Number(avgNetOBV.toFixed(4)),
+            strengthNetOBV: Number(strengthNetOBV.toFixed(4))
+        };
+    } catch (error) {
+        return { ticker, status: "Error", message: error.message };
+    }
+}
+
+module.exports = async (req, res) => {
+  const { tickers, ticker, interval, range, backday } = req.method === 'POST' ? req.body : req.query;
+  const tickerList = Array.isArray(tickers) ? tickers : [ticker];
+  const results = await Promise.all(tickerList.map(t => processSingleTicker(t, interval, range, backday)));
+  res.status(200).json(req.method === 'POST' ? { results } : results[0]);
+};
