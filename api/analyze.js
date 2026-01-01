@@ -105,7 +105,24 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
         const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open && (currentCandle.open > 1000) );
         if (!isBullish) {
-            return { ticker, status: "Filtered" };
+            return {
+                status: "Filtered",
+                ticker,
+                volSpikeRatio: null,
+                avgVol: null,
+                volatilityRatio: null,
+                lrs: null,
+                lastData: {
+                    ...currentCandle,
+                    timestamp: convertTimestamp(currentCandle.timestamp)
+                },
+                gapValue: null,
+                maxClose: null,
+                currentDeltaOBV: null,
+                currentNetOBV: null,
+                avgNetOBV: null,
+                strengthNetOBV: null
+            };
         }
 
         // --- LANJUT KE PERHITUNGAN
