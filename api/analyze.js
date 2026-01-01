@@ -165,12 +165,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 }
             
                 currentDeltaOBV += currentDelta;
-                //console.log(`currentDelta_sub : ${currentDelta}`);
+                console.log(`currentDelta_sub : ${currentDelta}`);
             });
 
             runningNetOBV += currentDeltaOBV;
             //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
-            //console.log(`runningNetOBV : ${runningNetOBV}`);
+            console.log(`runningNetOBV : ${runningNetOBV}`);
             historyData.push({ 
                 ...currentCandle, 
                 timestamp: convertTimestamp(currentCandle.timestamp), 
