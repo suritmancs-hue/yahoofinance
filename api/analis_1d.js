@@ -146,31 +146,41 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 const subHigh = sub.high;
                 const subLow = sub.low;
                 const subClose = sub.close;
-                const syncedVol = (sub.volume || 0) * scaleFactor
-            
+                const syncedVol = (sub.volume || 0) * scaleFactor;
                 const range = subHigh - subLow;
-                let currentDelta = 0;
             
-                // Jika High sama dengan Low, Delta = 0
-                if (subHigh !== subLow) {
+                let currentDelta = 0;
+
+                if (subClose !== subOpen) {
+                    const effectiveRange = Math.max(1, range);
+                    const intensity = Math.abs(subClose - subOpen) / effectiveRange;
+            
                     if (subClose > subOpen) {
-                        currentDelta = syncedVol * (Math.abs(subClose - subOpen) / range);
-                    } else if (subClose < subOpen) {
-                        currentDelta = -syncedVol * (Math.abs(subClose - subOpen) / range);
+                        currentDelta = syncedVol * intensity;
+                    } else {
+                        currentDelta = -syncedVol * intensity;
+                    }
+                } 
+                else {
+                    let prevClose;
+                    if (idx > 0) {
+                        prevClose = subCandlesInRange[idx - 1].close;
+                    } else {
+                        prevClose = (i > 0) ? mainCandles[i - 1].close : subOpen;
+                    }
+            
+                    if (subClose > prevClose) {
+                        currentDelta = syncedVol;
+                    } else if (subClose < prevClose) {
+                        currentDelta = -syncedVol;
                     } else {
                         currentDelta = 0;
                     }
-                } else {
-                    currentDelta = 0;
                 }
-            
                 currentDeltaOBV += currentDelta;
-                //console.log(`currentDelta_sub : ${currentDelta}`);
             });
 
             runningNetOBV += currentDeltaOBV;
-            //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
-            //console.log(`runningNetOBV : ${runningNetOBV}`);
             historyData.push({ 
                 ...currentCandle, 
                 timestamp: convertTimestamp(currentCandle.timestamp), 
@@ -194,11 +204,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maxClose =0;
         
-        const PERIOD = (interval === "15m") ? 35 : 25;
+        const PERIOD = 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
 
         if (n > MIN_REQUIRED_DATA) {
-            // --- TEKNIK SLICING IDENTIK DENGAN AD ---
             // Mengambil histori dengan membuang data terakhir (n-1)
             const sliceStart = n - (PERIOD + 1);
             const sliceEnd = n - 1;
@@ -238,8 +247,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
             volSpikeRatio = maVolume === 0 ? 0 : allVolumes[n - 1] / maVolume;
             
-            const ma3 = calculateMA(allVolumes.slice(0, -1), 3);
-            const ma10 = calculateMA(allVolumes.slice(0, -4), 10);
+            const ma3 = calculateMA(allVolumes, 3);
+            const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
         }
 
