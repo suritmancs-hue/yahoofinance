@@ -146,26 +146,39 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 const subHigh = sub.high;
                 const subLow = sub.low;
                 const subClose = sub.close;
-                const syncedVol = (sub.volume || 0) * scaleFactor
-            
+                const syncedVol = (sub.volume || 0) * scaleFactor;
                 const range = subHigh - subLow;
-                let currentDelta = 0;
             
-                // Jika High sama dengan Low, Delta = 0
-                if (subHigh !== subLow) {
+                let currentDelta = 0;
+
+                if (subClose !== subOpen) {
+                    const effectiveRange = Math.max(1, range);
+                    const intensity = Math.abs(subClose - subOpen) / effectiveRange;
+            
                     if (subClose > subOpen) {
-                        currentDelta = syncedVol * (Math.abs(subClose - subOpen) / range);
-                    } else if (subClose < subOpen) {
-                        currentDelta = -syncedVol * (Math.abs(subClose - subOpen) / range);
+                        currentDelta = syncedVol * intensity;
+                    } else {
+                        currentDelta = -syncedVol * intensity;
+                    }
+                } 
+                else {
+                    let prevClose;
+                    if (idx > 0) {
+                        prevClose = subCandlesInRange[idx - 1].close;
+                    } else {
+                        prevClose = (i > 0) ? mainCandles[i - 1].close : subOpen;
+                    }
+            
+                    if (subClose > prevClose) {
+                        currentDelta = syncedVol;
+                    } else if (subClose < prevClose) {
+                        currentDelta = -syncedVol;
                     } else {
                         currentDelta = 0;
                     }
-                } else {
-                    currentDelta = 0;
                 }
             
                 currentDeltaOBV += currentDelta;
-                console.log(`currentDelta_sub : ${currentDelta}`);
             });
 
             runningNetOBV += currentDeltaOBV;
