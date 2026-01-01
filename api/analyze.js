@@ -227,9 +227,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const avgCount = Math.floor((PERIOD + 1) / 2);
             for (let t = lrsEnd - 1; t >= lrsEnd - avgCount; t--) {
                 const windowCloses = historyData.slice(t - PERIOD + 1, t + 1).map(d => d.close);
-                if (windowCloses.length === PERIOD) arrayLRS.push(calculateLRS(windowCloses, PERIOD));
+                if (windowCloses.length === PERIOD) {
+                    const lrsValue = calculateLRS(windowCloses, PERIOD);
+                    arrayLRS.push(Math.abs(lrsValue));
+                }
             }
-            avgLRS = arrayLRS.length > 0 ? Math.abs(calculateAverage(arrayLRS)) : 0;
+            avgLRS = arrayLRS.length > 0 ? calculateAverage(arrayLRS) : 0;
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
