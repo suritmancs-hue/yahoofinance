@@ -246,8 +246,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
             volSpikeRatio = maVolume === 0 ? 0 : allVolumes[n - 1] / maVolume;
             
-            const ma3 = calculateMA(allVolumes.slice(0, -1), 3);
-            const ma10 = calculateMA(allVolumes.slice(0, -4), 10);
+            const ma3 = calculateMA(allVolumes, 3);
+            const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
 
             ocfilter = calculateOpenClose(historyData.slice(0, -1), PERIOD);
