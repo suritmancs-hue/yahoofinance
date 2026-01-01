@@ -177,13 +177,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                         currentDelta = 0;
                     }
                 }
-            
                 currentDeltaOBV += currentDelta;
             });
 
             runningNetOBV += currentDeltaOBV;
             //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
-            console.log(`runningNetOBV : ${runningNetOBV}`);
+            //console.log(`runningNetOBV : ${runningNetOBV}`);
             historyData.push({ 
                 ...currentCandle, 
                 timestamp: convertTimestamp(currentCandle.timestamp), 
@@ -200,18 +199,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             d.netOBV = normNetOBV[i];
         });
 
-        //console.log(`normNetOBV : ${normNetOBV}`);
-
         const latestCandle = historyData[n - 1];
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maxClose = 0, ocfilter = 0;
         
         const PERIOD = (interval === "15m") ? 35 : 25;
-        const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
+        const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1;
 
         if (n > MIN_REQUIRED_DATA) {
-            // --- TEKNIK SLICING IDENTIK DENGAN AD ---
             // Mengambil histori dengan membuang data terakhir (n-1)
             const sliceStart = n - (PERIOD + 1);
             const sliceEnd = n - 1;
@@ -227,7 +223,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const minH = Math.min(...historySlice);
             const maxH = Math.max(...historySlice);
 
-            // Perhitungan Indikator (Identik AD)
             avgNetOBV = stdev !== 0 ? (currentNetOBV_val - mean) / stdev : 0;
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
@@ -257,7 +252,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
             ocfilter = calculateOpenClose(historyData.slice(0, -1), PERIOD);
         }
- 
 
         return {
             status: "Sukses", ticker,
