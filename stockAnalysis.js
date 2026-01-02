@@ -63,7 +63,7 @@ function calculateOpenClose(historicalDataArray, period) {
       const prevOpen = subset[i-1].open;
       const prevClose = subset[i-1].close;
   
-      if ((currentOpen === currentClose) || (prevClose === currentClose) || (prevOpen === currentClose)) {
+      if ((currentOpen === currentClose) || (prevClose === currentClose) || (prevOpen === currentClose) || (prevOpen === currentOpen)) {
         oc += 1;
       }
   }
