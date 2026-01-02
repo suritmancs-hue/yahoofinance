@@ -47,27 +47,34 @@ function calculateMaxClose(historicalDataArray, period) {
   return Math.max(...closes);
 }
 
-function calculateOpenClose(historicalDataArray, period) {
-  const targetArraySize = period + 1;
-  const dataWithoutLast = historicalDataArray.slice(0, -1);
-  
-  if (dataWithoutLast.length < targetArraySize) return 0;
-  
-  const subset = dataWithoutLast.slice(-targetArraySize);
-  let oc = 0;
-
-  // Loop akan berjalan tepat sesuai jumlah 'period'
-  for (let i = 1; i < subset.length; i++) {
-      const currentOpen = subset[i].open;
-      const currentClose = subset[i].close;
-      const prevOpen = subset[i-1].open;
-      const prevClose = subset[i-1].close;
-  
-      if ((currentOpen === currentClose) || (prevClose === currentClose) || (prevOpen === currentClose) || (prevOpen === currentOpen)) {
-        oc += 1;
-      }
+function calculateOpenCloseMin(historicalDataArray, period) {
+  const results = [];
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const targetArraySize = period + 1;
+    const dataWithoutLast = historicalDataArray.slice(0, -1);
+    
+    if (dataWithoutLast.length < targetArraySize) {
+      results.push(0);
+      continue;
+    }
+    
+    const subset = dataWithoutLast.slice(-targetArraySize);
+    let oc = 0;
+    // Logika perhitungan OC
+    for (let i = 1; i < subset.length; i++) {
+        const currentOpen = subset[i].open;
+        const currentClose = subset[i].close;
+        const prevOpen = subset[i-1].open;
+        const prevClose = subset[i-1].close;
+    
+        if ((currentOpen === currentClose) || (prevClose === currentClose) || (prevOpen === currentClose) || (prevOpen === currentOpen)) {
+          oc += 1;
+        }
+    }
+    results.push(oc);
   }
-  return oc;
+  // Mengembalikan nilai minimal dari 5 kali perulangan tersebut
+  return Math.min(...results);
 }
 
 function calculateSTDEV(dataArray, period) {
