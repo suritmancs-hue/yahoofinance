@@ -19,8 +19,8 @@ function calculateVolatilityRatio(historicalDataArray, period) {
   let maxPrice = -Infinity;
   let minPrice = Infinity;
   for (const candle of relevantHistory) {
-    if (candle.high > maxPrice) maxPrice = candle.high;
-    if (candle.low < minPrice) minPrice = candle.low;
+    if (candle.close > maxPrice) maxPrice = candle.close;
+    if (candle.close < minPrice) minPrice = candle.close;
   }
   return (minPrice === 0 || minPrice === Infinity) ? 1 : maxPrice / minPrice;
 }
