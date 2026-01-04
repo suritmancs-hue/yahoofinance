@@ -47,7 +47,7 @@ function calculateMaxClose(historicalDataArray, period) {
   return Math.max(...closes);
 }
 
-function calculateOpenCloseMin(historicalDataArray, period) {
+function calculateOpenClose(historicalDataArray, period) {
   const results = [];
   for (let attempt = 0; attempt < 5; attempt++) {
     const targetArraySize = period + 1;
