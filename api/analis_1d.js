@@ -52,7 +52,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             low: mainQuoteRaw.low[i],
             close: mainQuoteRaw.close[i],
             volume: mainQuoteRaw.volume[i] || 0
-        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
+        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close) && d.volume !== 0);
 
         // --- 1. Potong mainCandles berdasarkan backday ---
         const backdayInt = parseInt(backday);
