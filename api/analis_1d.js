@@ -18,8 +18,8 @@ function convertTimestamp(unixSeconds) {
 async function processSingleTicker(ticker, interval, range, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
-    let subInterval = interval === '15m' ? '5m' : '1h';
-    let defaultRange = range || (interval === '15m' ? '10d' : '3mo');
+    let subInterval = '1h';
+    let defaultRange = range || '3mo';
 
     try {
         const [mainRes, subRes] = await Promise.all([
@@ -65,15 +65,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const lastMainCandle = mainCandles[mainCandles.length - 1];
             const lastMainTs = lastMainCandle.timestamp;
         
-            if (interval === '15m') {
-                /**
-                 * Logika 15m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
-                 * Jadi kita buang semua subCandles yang >= 10.15.
-                 */
-                const limit15m = lastMainTs + (15 * 60); 
-                subCandles = subCandles.filter(s => s.timestamp < limit15m);
-        
-            } else if (interval === '1d') {
                 /**
                  * Logika 1D: Batas akhir adalah akhir hari dari main candle terakhir.
                  * Kita buang subCandles yang sudah berganti tanggal dari main candle terakhir.
@@ -91,7 +82,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
                 // Data dari awal histori hingga akhir hari terakhir tetap aman.
                 subCandles = subCandles.filter(s => s.timestamp <= endOfDay);
-            }
         }
 
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
@@ -129,14 +119,24 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
       
         const historyData = [];
         let runningNetOBV = 0;
-
+        const SECONDS_IN_DAY = 86400;
+        
         for (let i = 0; i < mainCandles.length; i++) {
             const currentCandle = mainCandles[i];
-            const nextCandle = mainCandles[i + 1];
-            const intervalStep = (mainCandles.length > 1) ? (mainCandles[1].timestamp - mainCandles[0].timestamp) : 3600;
-            const nextMainTs = nextCandle ? nextCandle.timestamp : (currentCandle.timestamp + intervalStep);
-            
-            const subCandlesInRange = subCandles.filter(sub => sub.timestamp >= currentCandle.timestamp && sub.timestamp < nextMainTs);
+        
+            // 1. Normalisasi timestamp Main Candle ke 00:00:00 hari itu
+            // Caranya: Ambil timestamp murni, kurangi sisa detiknya dalam satu hari
+            const mainTs = Math.floor(Number(currentCandle.timestamp));
+            const startOfMainDay = mainTs - (mainTs % SECONDS_IN_DAY);
+            const endOfMainDay = startOfMainDay + (SECONDS_IN_DAY - 1); // 23:59:59
+        
+            // 2. Filter subCandles yang jatuh pada rentang hari yang sama
+            const subCandlesInRange = subCandles.filter(sub => {
+                const subTs = Math.floor(Number(sub.timestamp));
+                return subTs >= startOfMainDay && subTs <= endOfMainDay;
+            });
+        
+            // 3. Hitung Volume & Scale Factor tetap seperti biasa
             const totalSubVolume = subCandlesInRange.reduce((acc, curr) => acc + (curr.volume || 0), 0);
             const scaleFactor = (totalSubVolume > 0 && currentCandle.volume > 0) ? currentCandle.volume / totalSubVolume : 1;
         
