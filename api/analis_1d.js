@@ -93,7 +93,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const previousCandle = mainCandles[n - 2];
 
         // Syarat: Close > Prev Close DAN Close > Open
-        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open);
+        const isBullish = (currentCandle.close >= previousCandle.close) && (currentCandle.close >= currentCandle.open);
         if (!isBullish) {
             return {
                 status: "Filtered",
