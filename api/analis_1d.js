@@ -13,11 +13,10 @@ function toIDX(ts) {
   return Number(ts) + TZ_OFFSET;
 }
 
-function convertTimestamp(ts) {
-  return new Date((ts + TZ_OFFSET) * 1000)
-    .toISOString()
-    .replace('T', ' ')
-    .slice(0,19);
+function convertTimestamp(unixSeconds) {
+    if (!unixSeconds) return '';
+    const date = new Date((unixSeconds + TZ_OFFSET) * 1000);
+    return date.toUTCString().replace('GMT', 'WITA'); 
 }
 
 async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
