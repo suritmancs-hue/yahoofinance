@@ -276,7 +276,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 }
 
 module.exports = async (req, res) => {
-  const { tickers, ticker, interval, range, backday } = req.method === 'POST' ? req.body : req.query;
+  const { tickers, ticker, interval, subinterval, backday } = req.method === 'POST' ? req.body : req.query;
   const tickerList = Array.isArray(tickers) ? tickers : [ticker];
   const results = await Promise.all(tickerList.map(t => processSingleTicker(t, interval, subinterval, backday)));
   res.status(200).json(req.method === 'POST' ? { results } : results[0]);
