@@ -178,7 +178,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                     }
                 }
                 currentDeltaOBV += currentDelta;
-                console.log(`currentDelta : ${currentDelta}`);
+                console.log(`currentDelta : ${sub.timestamp} ${currentDelta}`);
                 //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
             });
 
