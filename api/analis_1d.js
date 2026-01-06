@@ -6,13 +6,18 @@ const {
   calculateAverage, calculateMaxClose, calculateSTDEV
 } = require('../stockAnalysis');
 
-const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
 const OFFSET = 3;
+const TZ_OFFSET = 8 * 3600; //UTC+8
 
-function convertTimestamp(unixSeconds) {
-    if (!unixSeconds) return '';
-    const date = new Date((unixSeconds + UTC_OFFSET_SECONDS) * 1000);
-    return date.toUTCString().replace('GMT', 'WITA'); 
+function toIDX(ts) {
+  return Number(ts) + TZ_OFFSET;
+}
+
+function convertTimestamp(ts) {
+  return new Date((ts + TZ_OFFSET) * 1000)
+    .toISOString()
+    .replace('T', ' ')
+    .slice(0,19);
 }
 
 async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
@@ -63,7 +68,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         // --- 2. Sinkronisasi subCandles (Truncate Logic) ---
         if (mainCandles.length > 0) {
             const lastMainCandle = mainCandles[mainCandles.length - 1];
-            const lastMainTs = lastMainCandle.timestamp;
+            const lastMainTs = toIDX(lastMainCandle.timestamp);
         
                 /**
                  * Logika 1D: Batas akhir adalah akhir hari dari main candle terakhir.
@@ -72,12 +77,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 const d = new Date(lastMainTs * 1000);
                 
                 // Buat batas akhir hari (pukul 23:59:59) untuk tanggal tersebut
-                const endOfDay = new Date(Date.UTC(
-                    d.getUTCFullYear(), 
-                    d.getUTCMonth(), 
-                    d.getUTCDate(), 
-                    23, 59, 59
-                )).getTime() / 1000;
+                const endOfDay = Math.floor(lastMainTsIDX / 86400) * 86400 + 86399;
         
                 // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
                 // Data dari awal histori hingga akhir hari terakhir tetap aman.
@@ -126,13 +126,13 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         
             // 1. Normalisasi timestamp Main Candle ke 00:00:00 hari itu
             // Caranya: Ambil timestamp murni, kurangi sisa detiknya dalam satu hari
-            const mainTs = Math.floor(Number(currentCandle.timestamp));
-            const startOfMainDay = mainTs - (mainTs % SECONDS_IN_DAY);
-            const endOfMainDay = startOfMainDay + (SECONDS_IN_DAY - 1); // 23:59:59
+            const mainTs = toIDX(currentCandle.timestamp);          
+            const startOfMainDay = Math.floor(mainTs / 86400) * 86400;
+            const endOfMainDay   = startOfDay + 86399;
         
             // 2. Filter subCandles yang jatuh pada rentang hari yang sama
             const subCandlesInRange = subCandles.filter(sub => {
-                const subTs = Math.floor(Number(sub.timestamp));
+                const subTs = toIDX(sub.timestamp);
                 return subTs >= startOfMainDay && subTs <= endOfMainDay;
             });
         
