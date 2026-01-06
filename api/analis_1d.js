@@ -178,9 +178,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                     }
                 }
                 currentDeltaOBV += currentDelta;
+                console.log(`currentDelta : ${currentDelta}`);
+                //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
             });
 
             runningNetOBV += currentDeltaOBV;
+            console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
+          
             historyData.push({ 
                 ...currentCandle, 
                 timestamp: convertTimestamp(currentCandle.timestamp), 
