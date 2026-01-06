@@ -1,5 +1,10 @@
 // api/fundamentals.js
-const yahooFinance = require('yahoo-finance2').default; // Import library 
+const YahooFinance = require('yahoo-finance2').default;
+
+// Inisialisasi dengan opsi untuk menyembunyikan notifikasi survey
+const yahooFinance = new YahooFinance({ 
+    suppressNotices: ['yahooSurvey'] 
+}); 
 
 module.exports = async (req, res) => {
     // 1. Validasi Method
@@ -8,7 +13,7 @@ module.exports = async (req, res) => {
     }
 
     try {
-        // 2. Parsing Body
+        // 2. Parsing Body yang aman
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
         const { tickers } = body;
 
@@ -16,70 +21,66 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: "Invalid body. 'tickers' array required." });
         }
 
-        // 3. Proses Paralel
-        // Library yahoo-finance2 sudah handle queue, tapi kita tetap map untuk format custom
-        const promises = tickers.map(t => fetchFundamentalData(t));
+        // Batasi jumlah ticker per request agar tidak timeout di Vercel (Max 10 detik)
+        const limitedTickers = tickers.slice(0, 30);
+        const promises = limitedTickers.map(t => fetchFundamentalData(t));
         const results = await Promise.all(promises);
 
         return res.status(200).json({ results });
 
     } catch (e) {
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ error: "Server Error: " + e.message });
     }
 };
 
-/**
- * Fungsi Fetch menggunakan yahoo-finance2
- */
 async function fetchFundamentalData(ticker) {
     try {
-        const result = await yahooFinance.quoteSummary(ticker, {
+        const symbol = ticker.toUpperCase().trim();
+        
+        const result = await yahooFinance.quoteSummary(symbol, {
             modules: ['defaultKeyStatistics', 'summaryDetail', 'price']
         });
 
         if (!result) {
-            return { ticker, status: "Not Found", note: "No Data" };
+            return { ticker: symbol, status: "Not Found", note: "No Data" };
         }
 
         const stats = result.defaultKeyStatistics || {};
         const summary = result.summaryDetail || {};
         const price = result.price || {};
 
-        // Ambil Data Mentah (Raw) untuk perhitungan
         const floatRaw = stats.floatShares || 0;
         const outstandingRaw = stats.sharesOutstanding || 0;
+        const marketCapRaw = summary.marketCap || 0;
 
-        // Hitung Persentase Float
+        // Perhitungan Persentase Float
         let floatPercent = 0;
         if (outstandingRaw > 0) {
             floatPercent = (floatRaw / outstandingRaw) * 100;
         }
 
+        // Penanganan Anomali Data
+        let finalStatus = "Sukses";
+        let note = "";
+        if (floatPercent > 100) {
+            finalStatus = "Anomali";
+            note = "Float > 100%. Data Yahoo kemungkinan belum menyesuaikan aksi korporasi.";
+        } else if (floatRaw === 0) {
+            note = "Data Float tidak tersedia.";
+        }
+
         return {
-            status: "Sukses",
-            ticker: ticker,
-            name: price.shortName || "-", 
-            
-            // Data Teks (untuk tampilan cantik)
-            floatShares: formatNumber(floatRaw), 
-            marketCap: formatNumber(summary.marketCap),
-            
-            // Data Mentah & Hasil Hitungan (untuk Logika)
-            floatRaw: floatRaw,
-            outstandingRaw: outstandingRaw,
-            floatPercent: floatPercent.toFixed(2) + "%" // Contoh: "35.50%"
+            status: finalStatus,
+            note: note,
+            ticker: symbol,
+            name: price.shortName || price.longName || "-", 
+            floatShares: floatRaw, 
+            marketCap: marketCapRaw,
+            outstanding: outstandingRaw,
+            floatPercent: parseFloat(floatPercent.toFixed(2))
         };
 
     } catch (error) {
         return { ticker, status: "Error", note: error.message };
     }
-}
-
-// Helper format angka (Tetap sama)
-function formatNumber(num) {
-    if (!num || isNaN(num)) return "-";
-    if (num >= 1.0e+12) return (num / 1.0e+12).toFixed(2) + "T";
-    if (num >= 1.0e+9) return (num / 1.0e+9).toFixed(2) + "B";
-    if (num >= 1.0e+6) return (num / 1.0e+6).toFixed(2) + "M";
-    return num.toString();
 }
