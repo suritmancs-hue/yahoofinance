@@ -10,6 +10,7 @@
     "start": "node api/analyze.js"
   },
   "dependencies": {
-    "yahoo-finance2": "^2.11.3"
+    "yahoo-finance2": "^3.11.2"
   }
 }
+
