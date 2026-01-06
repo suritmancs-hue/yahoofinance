@@ -15,16 +15,16 @@ function convertTimestamp(unixSeconds) {
     return date.toUTCString().replace('GMT', 'WITA'); 
 }
 
-async function processSingleTicker(ticker, interval, range, backday = 0) {
+async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
-    let subInterval = '1h';
-    let defaultRange = range || '3mo';
+    let mainRange = '3mo';
+    let subRange = '2mo';
 
     try {
         const [mainRes, subRes] = await Promise.all([
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${defaultRange}`),
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${defaultRange}`)
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`),
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${subRange}`)
         ]);
 
         const mainData = await mainRes.json();
