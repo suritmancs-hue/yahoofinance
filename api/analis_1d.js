@@ -77,7 +77,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 const d = new Date(lastMainTs * 1000);
                 
                 // Buat batas akhir hari (pukul 23:59:59) untuk tanggal tersebut
-                const endOfDay = Math.floor(lastMainTsIDX / 86400) * 86400 + 86399;
+                const endOfDay = Math.floor(lastMainTs / 86400) * 86400 + 86399;
         
                 // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
                 // Data dari awal histori hingga akhir hari terakhir tetap aman.
@@ -128,7 +128,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             // Caranya: Ambil timestamp murni, kurangi sisa detiknya dalam satu hari
             const mainTs = toIDX(currentCandle.timestamp);          
             const startOfMainDay = Math.floor(mainTs / 86400) * 86400;
-            const endOfMainDay   = startOfDay + 86399;
+            const endOfMainDay   = startOfMainDay + 86399;
         
             // 2. Filter subCandles yang jatuh pada rentang hari yang sama
             const subCandlesInRange = subCandles.filter(sub => {
