@@ -24,7 +24,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
     try {
         const [mainRes, subRes] = await Promise.all([
             fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`),
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${subRange}`)
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subinterval}&range=${subRange}`)
         ]);
 
         const mainData = await mainRes.json();
@@ -278,6 +278,6 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 module.exports = async (req, res) => {
   const { tickers, ticker, interval, range, backday } = req.method === 'POST' ? req.body : req.query;
   const tickerList = Array.isArray(tickers) ? tickers : [ticker];
-  const results = await Promise.all(tickerList.map(t => processSingleTicker(t, interval, range, backday)));
+  const results = await Promise.all(tickerList.map(t => processSingleTicker(t, interval, subinterval, backday)));
   res.status(200).json(req.method === 'POST' ? { results } : results[0]);
 };
