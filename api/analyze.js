@@ -18,13 +18,14 @@ function convertTimestamp(unixSeconds) {
 async function processSingleTicker(ticker, interval, range, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
-    let subInterval = interval === '15m' ? '5m' : '1h';
-    let defaultRange = range || (interval === '15m' ? '10d' : '3mo');
+    let subInterval = '5m';
+    let mainRange = range || '10d';
+    let subRange = '10d';
 
     try {
         const [mainRes, subRes] = await Promise.all([
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${defaultRange}`),
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${defaultRange}`)
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`),
+            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${subRange}`)
         ]);
 
         const mainData = await mainRes.json();
