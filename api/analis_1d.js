@@ -88,31 +88,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         const currentCandle = mainCandles[n - 1];
         const previousCandle = mainCandles[n - 2];
 
-        // Syarat: Close > Prev Close DAN Close > Open
-        const isBullish = (currentCandle.close >= previousCandle.close) && (currentCandle.close >= currentCandle.open);
-        if (!isBullish) {
-            return {
-                status: "Filtered",
-                ticker,
-                volSpikeRatio: null,
-                avgVol: null,
-                volatilityRatio: null,
-                lrs: null,
-                lastData: {
-                    ...currentCandle,
-                    timestamp: convertTimestamp(currentCandle.timestamp)
-                },
-                gapValue: null,
-                minClose: null,
-                currentDeltaOBV: null,
-                currentNetOBV: null,
-                avgNetOBV: null,
-                strengthNetOBV: null,
-            };
-        };
-
         // --- LANJUT KE PERHITUNGAN
-      
         const historyData = [];
         let runningNetOBV = 0;
         const SECONDS_IN_DAY = 86400;
