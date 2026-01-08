@@ -103,7 +103,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 currentDeltaOBV: null,
                 currentNetOBV: null,
                 avgNetOBV: null,
-                strengthNetOBV: null
+                strengthNetOBV: null,
+                ocfilter: null
             };
         }
 
