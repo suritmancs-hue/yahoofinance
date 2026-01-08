@@ -49,7 +49,7 @@ function calculateMaxClose(historicalDataArray, period) {
 
 function calculateMinClose(historicalDataArray) {
   if (historicalDataArray.length = 0) return 0;
-  const closes = historicalDataArray.slice(-5).map(candle => candle.close);
+  const closes = historicalDataArray.slice(-4).map(candle => candle.close);
   return Math.max(...closes);
 }
 
