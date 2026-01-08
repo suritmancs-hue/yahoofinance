@@ -20,7 +20,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
     let subInterval = '5m';
     let mainRange = range || '10d';
-    let subRange = '10d';
+    let subRange = mainRange;
 
     try {
         const [mainRes, subRes] = await Promise.all([
@@ -83,7 +83,9 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const previousCandle = mainCandles[n - 2];
 
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
-        const isBullish = (currentCandle.close > previousCandle.close) && (currentCandle.close > currentCandle.open && (currentCandle.volume > 1000) );
+        const isBullish = currentCandle.close > previousCandle.close && 
+                  currentCandle.close > currentCandle.open && 
+                  currentCandle.volume > 100000;
         if (!isBullish) {
             return {
                 status: "Filtered",
