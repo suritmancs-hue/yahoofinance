@@ -240,7 +240,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
             // --- Indikator Lainnya ---
-            minClose = calculateMinClose(historyData.slice(0, -1), PERIOD);
+            minClose = calculateMinClose(historyData.slice(0, -1));
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
 
             const arrayLRS = [];
