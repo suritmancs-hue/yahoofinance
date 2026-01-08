@@ -23,7 +23,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
     let mainRange = '3mo';
-    let subRange = '3mo';
+    let subRange = '50d';
 
     try {
         const [mainRes, subRes] = await Promise.all([
@@ -96,10 +96,33 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 subCandles = subCandles.filter(s => s.timestamp <= endOfDay);
         }
 
-        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
-        const n = mainCandles.length;
-        const currentCandle = mainCandles[n - 1];
-        const previousCandle = mainCandles[n - 2];
+        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
+        const n = mainCandles.length;
+        const currentCandle = mainCandles[n - 1];
+        const previousCandle = mainCandles[n - 2];
+
+        // Syarat: Close > Prev Close DAN Close > Open
+        const isBullish = (currentCandle.close >= previousCandle.close) && (currentCandle.close >= currentCandle.open);
+        if (!isBullish) {
+            return {
+                status: "Filtered",
+                ticker,
+                volSpikeRatio: null,
+                avgVol: null,
+                volatilityRatio: null,
+                lrs: null,
+                lastData: {
+                    ...currentCandle,
+                    timestamp: convertTimestamp(currentCandle.timestamp)
+                },
+                gapValue: null,
+                minClose: null,
+                currentDeltaOBV: null,
+                currentNetOBV: null,
+                avgNetOBV: null,
+                strengthNetOBV: null,
+            };
+        };
 
         // --- LANJUT KE PERHITUNGAN
         const historyData = [];
