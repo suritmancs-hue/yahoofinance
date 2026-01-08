@@ -85,9 +85,6 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
         const n = mainCandles.length;
-        if (n < 2) {
-            return { ticker, status: "Filtered" };
-        }
         const currentCandle = mainCandles[n - 1];
         const previousCandle = mainCandles[n - 2];
 
