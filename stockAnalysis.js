@@ -47,6 +47,12 @@ function calculateMaxClose(historicalDataArray, period) {
   return Math.max(...closes);
 }
 
+function calculateMinClose(historicalDataArray) {
+  if (historicalDataArray.length < period) return 0;
+  const closes = historicalDataArray.slice(-5).map(candle => candle.close);
+  return Math.max(...closes);
+}
+
 function calculateOpenClose(historicalDataArray, period) {
   const results = [];
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -92,6 +98,7 @@ module.exports = {
   calculateVolatilityRatio,
   calculateLRS, 
   calculateMaxClose, 
+  calculateMinClose, 
   calculateOpenClose, 
   calculateSTDEV
 };
