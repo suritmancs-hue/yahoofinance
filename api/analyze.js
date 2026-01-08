@@ -65,34 +65,13 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         if (mainCandles.length > 0) {
             const lastMainCandle = mainCandles[mainCandles.length - 1];
             const lastMainTs = lastMainCandle.timestamp;
-        
-            if (interval === '15m') {
+
                 /**
                  * Logika 15m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
                  * Jadi kita buang semua subCandles yang >= 10.15.
                  */
                 const limit15m = lastMainTs + (15 * 60); 
                 subCandles = subCandles.filter(s => s.timestamp < limit15m);
-        
-            } else if (interval === '1d') {
-                /**
-                 * Logika 1D: Batas akhir adalah akhir hari dari main candle terakhir.
-                 * Kita buang subCandles yang sudah berganti tanggal dari main candle terakhir.
-                 */
-                const d = new Date(lastMainTs * 1000);
-                
-                // Buat batas akhir hari (pukul 23:59:59) untuk tanggal tersebut
-                const endOfDay = new Date(Date.UTC(
-                    d.getUTCFullYear(), 
-                    d.getUTCMonth(), 
-                    d.getUTCDate(), 
-                    23, 59, 59
-                )).getTime() / 1000;
-        
-                // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
-                // Data dari awal histori hingga akhir hari terakhir tetap aman.
-                subCandles = subCandles.filter(s => s.timestamp <= endOfDay);
-            }
         }
 
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
