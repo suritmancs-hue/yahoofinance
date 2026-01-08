@@ -23,7 +23,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
     let mainRange = '3mo';
-    let subRange = '59d';
+    let subRange = '3mo';
 
     try {
         const [mainRes, subRes] = await Promise.all([
