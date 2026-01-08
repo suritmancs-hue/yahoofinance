@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
-  calculateAverage, calculateMaxClose, calculateSTDEV
+  calculateAverage, calculateMinClose, calculateSTDEV
 } = require('../stockAnalysis');
 
 const OFFSET = 3;
@@ -106,7 +106,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                     timestamp: convertTimestamp(currentCandle.timestamp)
                 },
                 gapValue: null,
-                maxClose: null,
+                minClose: null,
                 currentDeltaOBV: null,
                 currentNetOBV: null,
                 avgNetOBV: null,
@@ -205,7 +205,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         const latestCandle = historyData[n - 1];
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
-        let maxClose =0;
+        let minClose =0;
         
         const PERIOD = 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
@@ -231,7 +231,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
             // --- Indikator Lainnya ---
-            maxClose = calculateMaxClose(historyData.slice(0, -1), PERIOD);
+            minClose = calculateMinClose(historyData.slice(0, -1), PERIOD);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
 
             const arrayLRS = [];
@@ -263,7 +263,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             lrs: Number(avgLRS.toFixed(4)),
             lastData: latestCandle,
             gapValue: Number((latestCandle.open / historyData[n-2].close).toFixed(4)),
-            maxClose: Number(maxClose.toFixed(2)),
+            minClose: Number(minClose.toFixed(2)),
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
             avgNetOBV: Number(avgNetOBV.toFixed(4)),
