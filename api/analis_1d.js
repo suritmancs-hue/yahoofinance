@@ -111,7 +111,6 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 currentNetOBV: null,
                 avgNetOBV: null,
                 strengthNetOBV: null,
-                ocfilter: null
             };
         };
 
