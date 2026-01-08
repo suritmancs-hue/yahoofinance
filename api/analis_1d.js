@@ -32,6 +32,19 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         ]);
 
         const mainData = await mainRes.json();
+        // 1. Cek jika API mengembalikan objek error spesifik
+        if (mainData.chart?.error) {
+            return { 
+                ticker, 
+                status: "Error", 
+                message: `Yahoo API: ${mainData.chart.error.description}` 
+            };
+        }
+        // 2. Cek jika result kosong (sering terjadi jika ticker salah/delisted)
+        if (!mainData.chart?.result) {
+            return { ticker, status: "Error", message: "Ticker not found or delisted" };
+        }
+      
         const subData = await subRes.json();
         const mainResult = mainData?.chart?.result?.[0];
         const subResult = subData?.chart?.result?.[0];
