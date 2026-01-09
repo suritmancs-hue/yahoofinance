@@ -40,7 +40,7 @@ async function fetchFundamentalData(ticker) {
         const result = await yahooFinance.quoteSummary(symbol, {
             modules: ['defaultKeyStatistics', 'summaryDetail']
         });
-        console.log(result);
+        //console.log(result);
 
         if (!result) {
             return { ticker: symbol, status: "Not Found", note: "No Data" };
