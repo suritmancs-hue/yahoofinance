@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
-  calculateAverage, calculateMaxClose, calculateSTDEV, calculateOpenClose
+  calculateAverage, calculateMinClose, calculateSTDEV, calculateOpenClose
 } = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
@@ -210,7 +210,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
             // --- Indikator Lainnya ---
-            maxClose = calculateMaxClose(historyData.slice(0, -1), PERIOD);
+            maxClose = calculateMinClose(historyData.slice(0, -1), 5);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
 
             const arrayLRS = [];
