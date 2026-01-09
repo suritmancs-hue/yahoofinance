@@ -38,7 +38,7 @@ async function fetchFundamentalData(ticker) {
         const symbol = ticker.toUpperCase().trim();
         
         const result = await yahooFinance.quoteSummary(symbol, {
-            modules: ['defaultKeyStatistics', 'summaryDetail', 'price']
+            modules: ['defaultKeyStatistics', 'summaryDetail']
         });
         console.log(result);
 
@@ -48,7 +48,6 @@ async function fetchFundamentalData(ticker) {
 
         const stats = result.defaultKeyStatistics || {};
         const summary = result.summaryDetail || {};
-        const price = result.price || {};
 
         const marketCapRaw = summary.marketCap || 0;
         const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
@@ -86,7 +85,6 @@ async function fetchFundamentalData(ticker) {
             status: finalStatus,
             note: note,
             ticker: symbol,
-            name: price.shortName || price.longName || "-", 
             marketCap: marketCapRaw, 
             outstanding: outstandingRaw, 
             instPercentOfFloat: instPercentOfFloat, 
