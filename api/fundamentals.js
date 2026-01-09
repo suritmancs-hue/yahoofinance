@@ -1,38 +1,3 @@
-// api/fundamentals.js
-const YahooFinance = require('yahoo-finance2').default;
-
-// Inisialisasi dengan opsi untuk menyembunyikan notifikasi survey
-const yahooFinance = new YahooFinance({ 
-    suppressNotices: ['yahooSurvey'] 
-}); 
-
-module.exports = async (req, res) => {
-    // 1. Validasi Method
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
-    }
-
-    try {
-        // 2. Parsing Body yang aman
-        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-        const { tickers } = body;
-
-        if (!tickers || !Array.isArray(tickers)) {
-            return res.status(400).json({ error: "Invalid body. 'tickers' array required." });
-        }
-
-        // Batasi jumlah ticker per request agar tidak timeout di Vercel (Max 10 detik)
-        const limitedTickers = tickers.slice(0, 30);
-        const promises = limitedTickers.map(t => fetchFundamentalData(t));
-        const results = await Promise.all(promises);
-
-        return res.status(200).json({ results });
-
-    } catch (e) {
-        return res.status(500).json({ error: "Server Error: " + e.message });
-    }
-};
-
 async function fetchFundamentalData(ticker) {
     try {
         const symbol = ticker.toUpperCase().trim();
@@ -40,7 +5,6 @@ async function fetchFundamentalData(ticker) {
         const result = await yahooFinance.quoteSummary(symbol, {
             modules: ['defaultKeyStatistics', 'summaryDetail']
         });
-        console.log(result);
 
         if (!result) {
             return { ticker: symbol, status: "Not Found", note: "No Data" };
@@ -52,43 +16,38 @@ async function fetchFundamentalData(ticker) {
         const marketCapRaw = summary.marketCap || 0;
         const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
         const floatRaw = stats.floatShares || 0;
-        const insiderPercentRaw = stats.heldPercentInsiders ? stats.heldPercentInsiders.raw : 0;
-        const instPercentTotalRaw = stats.heldPercentInstitutions ? stats.heldPercentInstitutions.raw : 0;
 
-        // Perhitungan Persentase Float: 100% - % Held by Insiders
-        // Kita gunakan (1 - insiderPercentRaw) * 100
+        // FIX: Langsung ambil nilainya karena yahoo-finance2 sudah melakukan parsing otomatis
+        // Jika stats.heldPercentInsiders adalah objek, ambil .raw. Jika angka, ambil langsung.
+        const insiderPercentRaw = (typeof stats.heldPercentInsiders === 'object') ? (stats.heldPercentInsiders.raw || 0) : (stats.heldPercentInsiders || 0);
+        const instPercentTotalRaw = (typeof stats.heldPercentInstitutions === 'object') ? (stats.heldPercentInstitutions.raw || 0) : (stats.heldPercentInstitutions || 0);
+
+        // 1. Perhitungan Persentase Float: 100% - % Insider
         let floatPercent = (1 - insiderPercentRaw) * 100;
-        // Jika data insider kosong (0), dan Anda ingin tetap menggunakan data floatRaw sebagai cadangan:
+        
+        // Fallback jika insider 0 tetapi ada data float lembaran
         if (insiderPercentRaw === 0 && outstandingRaw > 0 && floatRaw > 0) {
             floatPercent = (floatRaw / outstandingRaw) * 100;
         }
 
-        // Hitung % Institutional terhadap FREE FLOAT
-        // Rumus: (Inst % Total * Outstanding) / Float_Lembar
+        // 2. Hitung % Institutional terhadap FREE FLOAT
         let instPercentOfFloat = 0;
         if (floatRaw > 0) {
+            // (Total Institusi % * Total Saham) / Saham Float Publik
             const instShares = instPercentTotalRaw * outstandingRaw;
             instPercentOfFloat = (instShares / floatRaw) * 100;
         }
 
-        // Penanganan Anomali Data
+        // Penanganan Anomali
         let finalStatus = "Sukses";
-        let note = "";
-        if (floatPercent > 100) {
-            finalStatus = "Anomali";
-            note = "Float > 100%. Data Yahoo kemungkinan belum menyesuaikan aksi korporasi.";
-        } else if (floatRaw === 0) {
-            note = "Data Float tidak tersedia.";
-        }
-
         return {
             status: finalStatus,
-            note: note,
+            note: note.trim(),
             ticker: symbol,
             marketCap: marketCapRaw, 
             outstanding: outstandingRaw, 
-            instPercentOfFloat: instPercentOfFloat, 
-            insiderPercent: insiderPercentRaw,
+            instPercentOfFloat: parseFloat(instPercentOfFloat.toFixed(2)), 
+            insiderPercent: parseFloat((insiderPercentRaw * 100).toFixed(2)),
             floatPercent: parseFloat(floatPercent.toFixed(2))
         };
 
