@@ -52,47 +52,46 @@ async function fetchFundamentalData(ticker) {
         const marketCapRaw = summary.marketCap || 0;
         const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
         const floatRaw = stats.floatShares || 0;
-        const insiderPercentRaw = stats.heldPercentInsiders ? stats.heldPercentInsiders.raw : 0;
-        const instPercentTotalRaw = stats.heldPercentInstitutions ? stats.heldPercentInstitutions.raw : 0;
+        const insiderPercentRaw =
+              typeof stats.heldPercentInsiders === 'number'
+                ? stats.heldPercentInsiders
+                : 0;
+        const instPercentTotalRaw =
+              typeof stats.heldPercentInstitutions === 'number'
+                ? stats.heldPercentInstitutions
+                : 0;
 
         // Perhitungan Persentase Float: 100% - % Held by Insiders
         // Kita gunakan (1 - insiderPercentRaw) * 100
-        let floatPercent = (1 - insiderPercentRaw) * 100;
-        // Jika data insider kosong (0), dan Anda ingin tetap menggunakan data floatRaw sebagai cadangan:
-        if (insiderPercentRaw === 0 && outstandingRaw > 0 && floatRaw > 0) {
-            floatPercent = (floatRaw / outstandingRaw) * 100;
+        let floatPercent = 0;
+        
+        if (insiderPercentRaw > 0) {
+          floatPercent = (1 - insiderPercentRaw) * 100;
+        } else if (outstandingRaw > 0 && floatRaw > 0) {
+          floatPercent = (floatRaw / outstandingRaw) * 100;
         }
 
         // Hitung % Institutional terhadap FREE FLOAT
         // Rumus: (Inst % Total * Outstanding) / Float_Lembar
         let instPercentOfFloat = 0;
-        if (floatRaw > 0) {
-            const instShares = instPercentTotalRaw * outstandingRaw;
-            instPercentOfFloat = (instShares / floatRaw) * 100;
+        if (floatRaw > 0 && instPercentTotalRaw > 0) {
+          const instShares = instPercentTotalRaw * outstandingRaw;
+          instPercentOfFloat = (instShares / floatRaw) * 100;
         }
 
         // Penanganan Anomali Data
         let finalStatus = "Sukses";
-        let note = "";
-        if (floatPercent > 100) {
-            finalStatus = "Anomali";
-            note = "Float > 100%. Data Yahoo kemungkinan belum menyesuaikan aksi korporasi.";
-        } else if (floatRaw === 0) {
-            note = "Data Float tidak tersedia.";
-        }
-
         return {
             status: finalStatus,
-            note: note,
             ticker: symbol,
             marketCap: marketCapRaw, 
             outstanding: outstandingRaw, 
-            instPercentOfFloat: instPercentOfFloat, 
-            insiderPercent: insiderPercentRaw,
+            instPercentOfFloat: Number(instPercentOfFloat.toFixed(2)), 
+            insiderPercent: parseFloat(insiderPercentRaw.toFixed(2)),
             floatPercent: parseFloat(floatPercent.toFixed(2))
         };
 
     } catch (error) {
-        return { ticker, status: "Error", note: error.message };
+        return { ticker, status: "Error", };
     }
 }
