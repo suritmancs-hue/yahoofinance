@@ -177,7 +177,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                         prevClose = (i > 0) ? mainCandles[i - 1].close : subOpen;
                     }
             
-                    if (subClose >= prevClose) {
+                    if (subClose > prevClose) {
                         currentDelta = syncedVol;
                     } else if (subClose < prevClose) {
                         currentDelta = -syncedVol;
