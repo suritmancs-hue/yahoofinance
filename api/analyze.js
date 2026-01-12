@@ -80,13 +80,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             return { ticker, status: "Filtered" };
         }
         const currentCandle = mainCandles[n - 1];
-        const previousCandle = mainCandles[n - 2];
+        const prevCandle1 = mainCandles[n - 2];
+        const prevCandle2 = mainCandles[n - 3];
+        const prevCandle3 = mainCandles[n - 4];
 
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
-        const isBullish = currentCandle.close > previousCandle.close && 
+        const isBullish = currentCandle.close > prevCandle1.close && 
                   (currentCandle.close / currentCandle.open) > 1.015 && 
                   currentCandle.volume > 1000000 &&
-                  currentCandle.volume > (1/2 * previousCandle.volume);
+                  currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume;
         if (!isBullish) {
             return {
                 status: "Filtered",
