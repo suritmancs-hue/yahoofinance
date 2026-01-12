@@ -84,7 +84,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
         const isBullish = currentCandle.close > previousCandle.close && 
-                  currentCandle.close > currentCandle.open && 
+                  (currentCandle.close / currentCandle.open) > 1.015 && 
                   currentCandle.volume > 1000000 &&
                   currentCandle.volume > (1/2 * previousCandle.volume);
         if (!isBullish) {
