@@ -76,7 +76,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
         const n = mainCandles.length;
-        if (n < 2) {
+        if (n < 4) {
             return { ticker, status: "Filtered" };
         }
         const currentCandle = mainCandles[n - 1];
@@ -85,9 +85,11 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const prevCandle3 = mainCandles[n - 4];
 
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
-        const isBullish = currentCandle.close > prevCandle1.close && 
-                  (currentCandle.close / currentCandle.open) > 1.015 && 
-                  currentCandle.volume > 1000000 &&
+        const isBullish = (currentCandle.close / currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.15 &&
+                  (currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
+                  (currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
+                  (currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
+                  currentCandle.volume > 10000000 &&
                   currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume;
         if (!isBullish) {
             return {
