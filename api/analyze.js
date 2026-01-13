@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
-  calculateAverage, calculateMinClose, calculateSTDEV, calculateOpenClose
+  calculateAverage, calculateMinClose, calculateSTDEV, calculateOpenClose, calculateMFI
 } = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
@@ -76,7 +76,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
         const n = mainCandles.length;
-        if (n < 4) {
+        if (n < 15) {
             return { ticker, status: "Filtered" };
         }
         const currentCandle = mainCandles[n - 1];
@@ -84,13 +84,16 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const prevCandle2 = mainCandles[n - 3];
         const prevCandle3 = mainCandles[n - 4];
 
+        const currentMFI = calculateMFI(mainCandles, 14);
+
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
         const isBullish = (currentCandle.close / currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.015 &&
                   (currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
                   (currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
                   (currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
                   currentCandle.volume > 5000000 &&
-                  currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume;
+                  currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
+                  currentMFI > 77.5;
         if (!isBullish) {
             return {
                 status: "Filtered",
