@@ -89,7 +89,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                   (currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
                   (currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
                   (currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
-                  currentCandle.volume > 10000000 &&
+                  currentCandle.volume > 5000000 &&
                   currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume;
         if (!isBullish) {
             return {
