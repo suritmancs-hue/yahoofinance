@@ -92,6 +92,35 @@ function calculateSTDEV(dataArray, period) {
   return Math.sqrt(sumSquareDiffs / n);
 }
 
+function calculateMFI(candles, period = 14) {
+    if (candles.length <= period) return 50; // Return neutral jika data kurang
+
+    let posMF = 0;
+    let negMF = 0;
+
+    // Ambil subset data sesuai periode dari belakang
+    const startIdx = candles.length - period;
+    
+    for (let i = startIdx; i < candles.length; i++) {
+        const current = candles[i];
+        const prev = candles[i - 1];
+
+        const tpCurrent = (current.high + current.low + current.close) / 3;
+        const tpPrev = (prev.high + prev.low + prev.close) / 3;
+        const rmf = tpCurrent * current.volume;
+
+        if (tpCurrent > tpPrev) {
+            posMF += rmf;
+        } else if (tpCurrent < tpPrev) {
+            negMF += rmf;
+        }
+    }
+
+    if (negMF === 0) return 100;
+    const mfr = posMF / negMF;
+    return 100 - (100 / (1 + mfr));
+}
+
 module.exports = {
   calculateAverage,
   calculateMA, 
@@ -100,5 +129,6 @@ module.exports = {
   calculateMaxClose, 
   calculateMinClose, 
   calculateOpenClose, 
-  calculateSTDEV
+  calculateSTDEV, 
+  calculateMFI
 };
