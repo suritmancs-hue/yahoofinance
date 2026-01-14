@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
-  calculateAverage, calculateMinClose, calculateSTDEV, calculateOpenClose, calculateMFI
+  calculateAverage, calculateMinClose, calculateSTDEV, calculateOpenClose, calculateMFI, calculateRSI
 } = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
@@ -85,6 +85,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const prevCandle3 = mainCandles[n - 4];
 
         const currentMFI = calculateMFI(mainCandles, 14);
+        const currentRSI = calculateRSI(mainCandles, 14);
         console.log(`currentMFI : ${currentMFI}`);
 
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
@@ -94,7 +95,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                   //(currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
                   currentCandle.volume > 1000000 &&
                   currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
-                  currentMFI > 77.5;
+                  currentMFI > 77.5 && currentRSI < 82.5;
         if (!isBullish) {
             return {
                 status: "Filtered",
