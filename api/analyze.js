@@ -237,7 +237,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
-            volSpikeRatio = maVolume === 0 ? 0 : allVolumes[n - 1] / maVolume;
+            volSpikeRatio = maVolume < 350000 ? 0 : allVolumes[n - 1] / maVolume;
             
             const ma5 = calculateMA(allVolumes, 5);
             const ma15 = calculateMA(allVolumes.slice(0, -5), 15);
