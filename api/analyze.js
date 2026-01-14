@@ -87,10 +87,10 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const currentMFI = calculateMFI(mainCandles, 14);
 
         // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
-        const isBullish = (currentCandle.close / currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.015 &&
-                  (currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
-                  (currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
-                  (currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
+        const isBullish = currentCandle.close >= currentCandle.open &&    //(currentCandle.close > currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.015 &&
+                  //(currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
+                  //(currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
+                  //(currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
                   currentCandle.volume > 1000000 &&
                   currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
                   currentMFI > 77.5;
