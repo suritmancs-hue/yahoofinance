@@ -121,6 +121,38 @@ function calculateMFI(candles, period = 14) {
     return 100 - (100 / (1 + mfr));
 }
 
+function calculateRSI(candles, period) {
+    if (candles.length <= period) return 50; // Return neutral jika data tidak cukup
+
+    let totalGain = 0;
+    let totalLoss = 0;
+
+    // Ambil subset data sesuai periode dari belakang
+    const startIdx = candles.length - period;
+
+    for (let i = startIdx; i < candles.length; i++) {
+        const current = candles[i];
+        const prev = candles[i - 1];
+
+        const change = current.close - prev.close;
+
+        if (change > 0) {
+            totalGain += change;
+        } else if (change < 0) {
+            totalLoss += Math.abs(change);
+        }
+    }
+
+    // Jika tidak ada penurunan sama sekali dalam periode tersebut
+    if (totalLoss === 0) return 100;
+    
+    // Menghitung Relative Strength (RS)
+    const rs = totalGain / totalLoss;
+
+    // Menghitung RSI
+    return 100 - (100 / (1 + rs));
+}
+
 module.exports = {
   calculateAverage,
   calculateMA, 
@@ -130,5 +162,6 @@ module.exports = {
   calculateMinClose, 
   calculateOpenClose, 
   calculateSTDEV, 
-  calculateMFI
+  calculateMFI, 
+  calculateRSI
 };
