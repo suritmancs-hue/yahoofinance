@@ -95,7 +95,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                   //(currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
                   currentCandle.volume > 1000000 &&
                   currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
-                  currentMFI > 77.5 && currentRSI < 82.5;
+                  currentMFI > 77.5 && currentRSI < 80;
         if (!isBullish) {
             return {
                 status: "Filtered",
