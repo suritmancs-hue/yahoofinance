@@ -131,7 +131,14 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             
             const subCandlesInRange = subCandles.filter(sub => sub.timestamp >= currentCandle.timestamp && sub.timestamp < nextMainTs);
             const totalSubVolume = subCandlesInRange.reduce((acc, curr) => acc + (curr.volume || 0), 0);
-            const scaleFactor = (totalSubVolume > 0 && currentCandle.volume > 0) ? currentCandle.volume / totalSubVolume : 1;
+
+            let effectiveMainVolume = currentCandle.volume;
+            if (effectiveMainVolume === 0 || effectiveMainVolume === null) {
+                effectiveMainVolume = totalSubVolume;
+            }
+            const scaleFactor = (totalSubVolume > 0 && effectiveMainVolume > 0) 
+                ? effectiveMainVolume / totalSubVolume 
+                : 1;
         
             let currentDeltaOBV = 0;
             subCandlesInRange.forEach((sub, idx) => {
