@@ -23,27 +23,11 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
     let subRange = mainRange;
 
     try {
-        const [mainRes, subRes] = await Promise.all([
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`),
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${subRange}`)
-        ]);
-
+        const [mainRes, subRes] = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`);
         const mainData = await mainRes.json();
-        const subData = await subRes.json();
         const mainResult = mainData?.chart?.result?.[0];
-        const subResult = subData?.chart?.result?.[0];
 
-        if (!mainResult || !subResult) return { ticker, status: "Error", message: "Data Empty" };
-
-        const subQuote = subResult.indicators.quote[0];
-        let subCandles = subResult.timestamp.map((ts, i) => ({
-          timestamp: ts,
-          open: subQuote.open[i],
-          high: subQuote.high[i],
-          low: subQuote.low[i],
-          close: subQuote.close[i],
-          volume: subQuote.volume[i] || 0
-        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
+        if (!mainResult) return { ticker, status: "Error", message: "Data Empty" };
 
         const mainQuoteRaw = mainResult.indicators.quote[0];
         const mainCandles = mainResult.timestamp.map((ts, i) => ({
@@ -59,19 +43,6 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const backdayInt = parseInt(backday);
         if (!isNaN(backdayInt) && backdayInt > 0 && mainCandles.length > backdayInt) {
             mainCandles.splice(-backdayInt);
-        }
-        
-        // --- 2. Sinkronisasi subCandles (Truncate Logic) ---
-        if (mainCandles.length > 0) {
-            const lastMainCandle = mainCandles[mainCandles.length - 1];
-            const lastMainTs = lastMainCandle.timestamp;
-
-                /**
-                 * Logika 15m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
-                 * Jadi kita buang semua subCandles yang >= 10.15.
-                 */
-                const limit15m = lastMainTs + (15 * 60); 
-                subCandles = subCandles.filter(s => s.timestamp < limit15m);
         }
 
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
@@ -109,6 +80,35 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 strengthNetOBV: null,
                 ocfilter: null
             };
+        }
+
+        const subRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subInterval}&range=${subRange}`);
+        const subData = await subRes.json();
+        const subResult = subData?.chart?.result?.[0]; 
+      
+        if (!subResult) return { ticker, status: "Error", message: "Data Empty" };
+      
+        const subQuote = subResult.indicators.quote[0];
+        let subCandles = subResult.timestamp.map((ts, i) => ({
+          timestamp: ts,
+          open: subQuote.open[i],
+          high: subQuote.high[i],
+          low: subQuote.low[i],
+          close: subQuote.close[i],
+          volume: subQuote.volume[i] || 0
+        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
+        
+        // --- 2. Sinkronisasi subCandles (Truncate Logic) ---
+        if (mainCandles.length > 0) {
+            const lastMainCandle = mainCandles[mainCandles.length - 1];
+            const lastMainTs = lastMainCandle.timestamp;
+
+                /**
+                 * Logika 15m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
+                 * Jadi kita buang semua subCandles yang >= 10.15.
+                 */
+                const limit15m = lastMainTs + (15 * 60); 
+                subCandles = subCandles.filter(s => s.timestamp < limit15m);
         }
 
         // --- LANJUT KE PERHITUNGAN
