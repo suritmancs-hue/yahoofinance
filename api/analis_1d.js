@@ -27,11 +27,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
     let subRange = '50d';
 
     try {
-        const [mainRes, subRes] = await Promise.all([
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`),
-            fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subinterval}&range=${subRange}`)
-        ]);
-
+        const mainRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`);
         const mainData = await mainRes.json();
         // 1. Cek jika API mengembalikan objek error spesifik
         if (mainData.chart?.error) {
@@ -46,22 +42,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             return { ticker, status: "Error", message: "Ticker not found or delisted" };
         }
       
-        const subData = await subRes.json();
         const mainResult = mainData?.chart?.result?.[0];
-        const subResult = subData?.chart?.result?.[0];
-
-        if (!mainResult || !subResult) return { ticker, status: "Error", message: "Data Empty" };
-
-        const subQuote = subResult.indicators.quote[0];
-        let subCandles = subResult.timestamp.map((ts, i) => ({
-          timestamp: ts,
-          open: subQuote.open[i],
-          high: subQuote.high[i],
-          low: subQuote.low[i],
-          close: subQuote.close[i],
-          volume: subQuote.volume[i] || 0
-        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
-
         const mainQuoteRaw = mainResult.indicators.quote[0];
         const mainCandles = mainResult.timestamp.map((ts, i) => ({
             timestamp: ts,
@@ -77,32 +58,13 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         if (!isNaN(backdayInt) && backdayInt > 0 && mainCandles.length > backdayInt) {
             mainCandles.splice(-backdayInt);
         }
-        
-        // --- 2. Sinkronisasi subCandles (Truncate Logic) ---
-        if (mainCandles.length > 0) {
-            const lastMainCandle = mainCandles[mainCandles.length - 1];
-            const lastMainTs = toIDX(lastMainCandle.timestamp);
-        
-                /**
-                 * Logika 1D: Batas akhir adalah akhir hari dari main candle terakhir.
-                 * Kita buang subCandles yang sudah berganti tanggal dari main candle terakhir.
-                 */
-                const d = new Date(lastMainTs * 1000);
-                
-                // Buat batas akhir hari (pukul 23:59:59) untuk tanggal tersebut
-                const endOfDay = Math.floor(lastMainTs / 86400) * 86400 + 86399;
-        
-                // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
-                // Data dari awal histori hingga akhir hari terakhir tetap aman.
-                subCandles = subCandles.filter(s => s.timestamp <= endOfDay);
-        }
-
-        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
+      
+        // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
         const n = mainCandles.length;
         const currentCandle = mainCandles[n - 1];
         const previousCandle = mainCandles[n - 2];
 
-        // Syarat: Close > Prev Close DAN Close > Open
+        // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1jt
         const isBullish = (currentCandle.close >= previousCandle.close) && (currentCandle.close >= currentCandle.open) && currentCandle.volume > 1000000;
         if (!isBullish) {
             return {
@@ -126,6 +88,41 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 rsi: null,
             };
         };
+
+        const subRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subinterval}&range=${subRange}`);
+        const subData = await subRes.json();
+        const subResult = subData?.chart?.result?.[0];
+
+        if (!mainResult || !subResult) return { ticker, status: "Error", message: "Data Empty" };
+
+        const subQuote = subResult.indicators.quote[0];
+        let subCandles = subResult.timestamp.map((ts, i) => ({
+          timestamp: ts,
+          open: subQuote.open[i],
+          high: subQuote.high[i],
+          low: subQuote.low[i],
+          close: subQuote.close[i],
+          volume: subQuote.volume[i] || 0
+        })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
+        
+        // --- 2. Sinkronisasi subCandles (Truncate Logic) ---
+        if (mainCandles.length > 0) {
+            const lastMainCandle = mainCandles[mainCandles.length - 1];
+            const lastMainTs = toIDX(lastMainCandle.timestamp);
+        
+                /**
+                 * Logika 1D: Batas akhir adalah akhir hari dari main candle terakhir.
+                 * Kita buang subCandles yang sudah berganti tanggal dari main candle terakhir.
+                 */
+                const d = new Date(lastMainTs * 1000);
+                
+                // Buat batas akhir hari (pukul 23:59:59) untuk tanggal tersebut
+                const endOfDay = Math.floor(lastMainTs / 86400) * 86400 + 86399;
+        
+                // Kita hanya membuang data yang SUDAH MELEWATI hari tersebut.
+                // Data dari awal histori hingga akhir hari terakhir tetap aman.
+                subCandles = subCandles.filter(s => s.timestamp <= endOfDay);
+        }
 
         // --- LANJUT KE PERHITUNGAN
         const historyData = [];
@@ -217,7 +214,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         const latestCandle = historyData[n - 1];
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
-        let minClose =0;
+        let minClose = 0;
+        let currentMFI = 0, currentRSI = 0;
         
         const PERIOD = 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
@@ -266,8 +264,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
 
-            const currentMFI = calculateMFI(historyData, 14);
-            const currentRSI = calculateRSI(historyData, 14);
+            currentMFI = calculateMFI(historyData, 14);
+            currentRSI = calculateRSI(historyData, 14);
         }
 
         return {
@@ -292,8 +290,23 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 }
 
 module.exports = async (req, res) => {
-  const { tickers, ticker, interval, subinterval, backday } = req.method === 'POST' ? req.body : req.query;
-  const tickerList = Array.isArray(tickers) ? tickers : [ticker];
-  const results = await Promise.all(tickerList.map(t => processSingleTicker(t, interval, subinterval, backday)));
-  res.status(200).json(req.method === 'POST' ? { results } : results[0]);
+    try {
+        const { tickers, ticker, interval, subinterval, backday } = req.method === 'POST' ? req.body : req.query;
+        
+        // Menentukan list ticker
+        const tickerList = Array.isArray(tickers) ? tickers : (ticker ? [ticker] : []);
+        
+        if (tickerList.length === 0) {
+            return res.status(400).json({ status: "Error", message: "No tickers provided" });
+        }
+
+        // PERBAIKAN: Promise.all di sini untuk menjalankan processSingleTicker secara paralel
+        const results = await Promise.all(
+            tickerList.map(t => processSingleTicker(t, interval, subinterval, backday))
+        );
+
+        res.status(200).json(req.method === 'POST' ? { results } : results[0]);
+    } catch (err) {
+        res.status(500).json({ status: "Error", message: err.message });
+    }
 };
