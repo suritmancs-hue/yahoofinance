@@ -3,7 +3,8 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
-  calculateAverage, calculateMinClose, calculateSTDEV
+  calculateAverage, calculateMinClose, calculateSTDEV, 
+  calculateMFI, calculateRSI
 } = require('../stockAnalysis');
 
 const OFFSET = 3;
@@ -121,6 +122,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 currentNetOBV: null,
                 avgNetOBV: null,
                 strengthNetOBV: null,
+                mfi: null,
+                rsi: null,
             };
         };
 
@@ -262,6 +265,9 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const ma3 = calculateMA(allVolumes, 3);
             const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
+
+            const currentMFI = calculateMFI(historyData, 14);
+            const currentRSI = calculateRSI(historyData, 14);
         }
 
         return {
@@ -276,7 +282,9 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
             avgNetOBV: Number(avgNetOBV.toFixed(4)),
-            strengthNetOBV: Number(strengthNetOBV.toFixed(4))
+            strengthNetOBV: Number(strengthNetOBV.toFixed(4)),
+            currentMFI: Number(currentMFI.toFixed(2)),
+            currentRSI: Number(currentRSI.toFixed(2))
         };
     } catch (error) {
         return { ticker, status: "Error", message: error.message };
