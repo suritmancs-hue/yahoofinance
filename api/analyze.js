@@ -80,22 +80,15 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             return { ticker, status: "Filtered" };
         }
         const currentCandle = mainCandles[n - 1];
-        const prevCandle1 = mainCandles[n - 2];
-        const prevCandle2 = mainCandles[n - 3];
-        const prevCandle3 = mainCandles[n - 4];
+        const prevCandle = mainCandles[n - 2];
+        //const prevCandle2 = mainCandles[n - 3];
+        //const prevCandle3 = mainCandles[n - 4];
 
-        const currentMFI = calculateMFI(mainCandles, 14);
-        const currentRSI = calculateRSI(mainCandles, 14);
-        //console.log(`currentMFI : ${currentMFI}`);
-
-        // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1.000
-        const isBullish = currentCandle.close >= currentCandle.open &&    //(currentCandle.close > currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.015 &&
+        const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle.close;
+                  //(currentCandle.close > currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.015 &&
                   //(currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
                   //(currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
                   //(currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
-                  currentCandle.volume > 1000000 &&
-                  currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
-                  currentMFI > 77.5 && currentRSI < 80;
         if (!isBullish) {
             return {
                 status: "Filtered",
@@ -184,7 +177,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             //console.log(`currentDeltaOBV : ${currentDeltaOBV}`);
             //console.log(`runningNetOBV : ${runningNetOBV}`);
             historyData.push({ 
-                ...currentCandle, 
+                ...currentCandle,
+                volume: effectiveMainVolume,
                 timestamp: convertTimestamp(currentCandle.timestamp), 
                 deltaOBV: currentDeltaOBV, 
                 netOBV: runningNetOBV 
@@ -200,6 +194,38 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         });
 
         const latestCandle = historyData[n - 1];
+        const prevCandle1 = historyData[n - 2];
+        const prevCandle2 = historyData[n - 3];
+        const prevCandle3 = historyData[n - 4];
+
+        const currentMFI = calculateMFI(historyData, 14);
+        const currentRSI = calculateRSI(historyData, 14);
+        const isMomentum = 
+              latestCandle.volume > 1000000 &&
+              latestCandle.volume > prevCandle1.volume && latestCandle.volume > prevCandle2.volume && latestCandle.volume > prevCandle3.volume &&
+              currentMFI > 77.5 && currentRSI < 80;
+        if (!isMomentum) {
+            return {
+                status: "Filtered",
+                ticker,
+                volSpikeRatio: null,
+                avgVol: null,
+                volatilityRatio: null,
+                lrs: null,
+                lastData: {
+                    ...latestCandle,
+                    timestamp: convertTimestamp(latestCandle.timestamp)
+                },
+                gapValue: null,
+                maxClose: null,
+                currentDeltaOBV: null,
+                currentNetOBV: null,
+                avgNetOBV: null,
+                strengthNetOBV: null,
+                ocfilter: null
+            };
+        }
+
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maxClose = 0, ocfilter = 0;
@@ -260,7 +286,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             volatilityRatio: Number(volatilityRatio.toFixed(4)),
             lrs: Number(avgLRS.toFixed(4)),
             lastData: latestCandle,
-            gapValue: Number((latestCandle.open / historyData[n-2].close).toFixed(4)),
+            gapValue: historyData[n-2]?.close ? Number((latestCandle.open / historyData[n-2].close).toFixed(4)) : 1,
             maxClose: Number(maxClose.toFixed(2)),
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
