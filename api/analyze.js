@@ -23,7 +23,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
     let subRange = mainRange;
 
     try {
-        const [mainRes, subRes] = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`);
+        const mainRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`);
         const mainData = await mainRes.json();
         const mainResult = mainData?.chart?.result?.[0];
 
