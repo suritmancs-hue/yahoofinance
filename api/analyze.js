@@ -61,6 +61,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                   //(currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
                   //(currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
         if (!isBullish) {
+            console.log(`Ticker: ${ticker}, TS Raw: ${currentCandle.timestamp}`);
             return {
                 status: "Filtered",
                 ticker,
