@@ -4,7 +4,7 @@
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
   calculateAverage, calculateMinClose, calculateSTDEV, 
-  calculateMFI, calculateRSI
+  calculateMFI, calculateRSI, calculateADX
 } = require('../stockAnalysis');
 
 const OFFSET = 3;
@@ -86,6 +86,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 strengthNetOBV: null,
                 mfi: null,
                 rsi: null,
+                adx: null,
             };
         };
 
@@ -215,7 +216,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let minClose = 0;
-        let currentMFI = 0, currentRSI = 0;
+        let currentMFI = 0, currentRSI = 0; currentADX = 0;
         
         const PERIOD = 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
@@ -266,6 +267,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             currentMFI = calculateMFI(historyData, 14);
             currentRSI = calculateRSI(historyData, 14);
+            currentADX = calculateADX(historyData, 14);
         }
 
         return {
@@ -282,7 +284,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             avgNetOBV: Number(avgNetOBV.toFixed(4)),
             strengthNetOBV: Number(strengthNetOBV.toFixed(4)),
             currentMFI: Number(currentMFI.toFixed(2)),
-            currentRSI: Number(currentRSI.toFixed(2))
+            currentRSI: Number(currentRSI.toFixed(2)),
+            currentADX: Number(currentADX.toFixed(2))
         };
     } catch (error) {
         return { ticker, status: "Error", message: error.message };
