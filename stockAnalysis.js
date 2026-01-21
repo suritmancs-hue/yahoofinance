@@ -153,6 +153,67 @@ function calculateRSI(candles, period) {
     return 100 - (100 / (1 + rs));
 }
 
+function calculateADX(candles, period = 14) {
+  // ADX membutuhkan data minimal (2 * period) untuk smoothing yang akurat, 
+  // tapi secara teknis bisa berjalan dengan (period + 1) data.
+  if (!candles || candles.length <= period) return 0;
+
+  let trs = [];
+  let plusDMs = [];
+  let minusDMs = [];
+
+  // 1. Hitung TR, +DM, dan -DM untuk setiap candle
+  for (let i = 1; i < candles.length; i++) {
+    const current = candles[i];
+    const prev = candles[i - 1];
+
+    // True Range (TR)
+    const tr = Math.max(
+      current.high - current.low,
+      Math.abs(current.high - prev.close),
+      Math.abs(current.low - prev.close)
+    );
+    trs.push(tr);
+
+    // Directional Movement (+DM dan -DM)
+    const upMove = current.high - prev.high;
+    const downMove = prev.low - current.low;
+
+    let plusDM = 0;
+    let minusDM = 0;
+
+    if (upMove > downMove && upMove > 0) {
+      plusDM = upMove;
+    }
+    if (downMove > upMove && downMove > 0) {
+      minusDM = downMove;
+    }
+
+    plusDMs.push(plusDM);
+    minusDMs.push(minusDM);
+  }
+
+  // 2. Ambil subset data sesuai periode dari belakang
+  const relevantTR = trs.slice(-period);
+  const relevantPlusDM = plusDMs.slice(-period);
+  const relevantMinusDM = minusDMs.slice(-period);
+
+  const sumTR = relevantTR.reduce((a, b) => a + b, 0);
+  const sumPlusDM = relevantPlusDM.reduce((a, b) => a + b, 0);
+  const sumMinusDM = relevantMinusDM.reduce((a, b) => a + b, 0);
+
+  if (sumTR === 0) return 0;
+
+  // 3. Hitung +DI dan -DI
+  const plusDI = (sumPlusDM / sumTR) * 100;
+  const minusDI = (sumMinusDM / sumTR) * 100;
+
+  // 4. Hitung DX (Directional Index)
+  const dx = (Math.abs(plusDI - minusDI) / (plusDI + minusDI)) * 100;
+
+  return dx;
+}
+
 module.exports = {
   calculateAverage,
   calculateMA, 
@@ -163,5 +224,6 @@ module.exports = {
   calculateOpenClose, 
   calculateSTDEV, 
   calculateMFI, 
-  calculateRSI
+  calculateRSI,
+  calculateADX
 };
