@@ -216,7 +216,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let minClose = 0;
-        let currentMFI = 0, currentRSI = 0; currentADX = 0;
+        let currentMFI = 0, currentRSI = 0, currentADX = 0;
         let signalTrend = 0;
         
         const PERIOD = 25;
