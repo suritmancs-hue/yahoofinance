@@ -86,6 +86,7 @@ async function fetchFundamentalData(ticker) {
             ticker: symbol,
             marketCap: marketCapRaw, 
             outstanding: outstandingRaw, 
+            float: floatRaw,
             instPercentOfFloat: Number(instPercentOfFloat.toFixed(2)), 
             insiderPercent: parseFloat(insiderPercentRaw.toFixed(2)),
             floatPercent: parseFloat(floatPercent.toFixed(2))
