@@ -214,6 +214,93 @@ function calculateADX(candles, period = 14) {
   return dx;
 }
 
+/**
+ * Mendeteksi Divergensi menggunakan Swing-Based Pivot (High/Low)
+ * @param {Array} candles Array objek OHLC
+ * @param {Array} indicators Array nilai indikator (misal RSI atau MFI)
+ * @param {number} lookback Periode pengecekan
+ */
+function calculateDivergence(candles, indicators, lookback = 20) {
+  try {
+    const closes = candles.map(c => c.close);
+    const len = Math.min(closes.length, indicators.length);
+
+    if (len < 5) return "Menunggu Data";
+
+    // PIVOT DETECTOR
+    const findPivots = (arr, type) => {
+      let pivots = [];
+      for (let i = 1; i < arr.length - 1; i++) {
+        if (
+          (type === 'low' && arr[i] < arr[i - 1] && arr[i] < arr[i + 1]) ||
+          (type === 'high' && arr[i] > arr[i - 1] && arr[i] > arr[i + 1])
+        ) {
+          pivots.push({ index: i, value: arr[i] });
+        }
+      }
+      return pivots;
+    };
+
+    const sliceStart = Math.max(0, len - lookback);
+    const pSlice = closes.slice(sliceStart);
+    const iSlice = indicators.slice(sliceStart);
+
+    const pLow = findPivots(pSlice, 'low');
+    const pHigh = findPivots(pSlice, 'high');
+    const iLow = findPivots(iSlice, 'low');
+    const iHigh = findPivots(iSlice, 'high');
+
+    const lastP = pSlice[pSlice.length - 1];
+    const lastI = iSlice[iSlice.length - 1];
+
+    // LOGIKA KETIKA PIVOT TIDAK LENGKAP (< 2)
+    if (pLow.length < 2 || pHigh.length < 2 || iLow.length < 2 || iHigh.length < 2) {
+      // Sinyal Awal Bullish
+      if (pLow.length >= 1 && iLow.length >= 1) {
+        const lastPLow = pLow[pLow.length - 1].value;
+        const lastILow = iLow[iLow.length - 1].value;
+        if (lastP < lastPLow && lastI > lastILow && lastI < 80) return "POTENSI BULLISH (Single Pivot)";
+      }
+      // Sinyal Awal Bearish
+      if (pHigh.length >= 1 && iHigh.length >= 1) {
+        const lastPHigh = pHigh[pHigh.length - 1].value;
+        const lastIHigh = iHigh[iHigh.length - 1].value;
+        if (lastP > lastPHigh && lastI < lastIHigh && lastI > 20) return "POTENSI BEARISH (Single Pivot)";
+      }
+      return "-";
+    }
+
+    // LOGIKA DIVERGENSI STANDAR (2 PIVOT)
+    const pLow1 = pLow[pLow.length - 2];
+    const pLow2 = pLow[pLow.length - 1];
+    const pHigh1 = pHigh[pHigh.length - 2];
+    const pHigh2 = pHigh[pHigh.length - 1];
+
+    const iLow1 = iLow[iLow.length - 2];
+    const iLow2 = iLow[iLow.length - 1];
+    const iHigh1 = iHigh[iHigh.length - 2];
+    const iHigh2 = iHigh[iHigh.length - 1];
+
+    // BULLISH DIVERGENCE
+    if (pLow2.value < pLow1.value && iLow2.value > iLow1.value) {
+      return "STRONG BULLISH DIVERGENCE";
+    }
+
+    // BEARISH DIVERGENCE
+    if (pHigh2.value > pHigh1.value && iHigh2.value < iHigh1.value) {
+      return "STRONG BEARISH DIVERGENCE";
+    }
+
+    // CONVERGENCE (CONTINUATION)
+    if (pHigh2.value > pHigh1.value && iHigh2.value > iHigh1.value) return "BULLISH CONTINUATION";
+    if (pLow2.value < pLow1.value && iLow2.value < iLow1.value) return "BEARISH CONTINUATION";
+
+    return "-";
+  } catch (err) {
+    return "Error: " + err.message;
+  }
+}
+
 module.exports = {
   calculateAverage,
   calculateMA, 
@@ -225,5 +312,6 @@ module.exports = {
   calculateSTDEV, 
   calculateMFI, 
   calculateRSI,
-  calculateADX
+  calculateADX,
+  calculateDivergence
 };
