@@ -4,7 +4,7 @@
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
   calculateAverage, calculateMinClose, calculateSTDEV, 
-  calculateMFI, calculateRSI, calculateADX
+  calculateMFI, calculateRSI, calculateADX, calculateDivergence
 } = require('../stockAnalysis');
 
 const OFFSET = 3;
@@ -217,6 +217,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let minClose = 0;
         let currentMFI = 0, currentRSI = 0; currentADX = 0;
+        let signalTrend = 0,
         
         const PERIOD = 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
@@ -265,9 +266,17 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
 
+            // Hitung array RSI secara efisien untuk seluruh historyData
+            const allRsiValues = historyData.map((_, idx) => {
+                if (idx < 14) return 50; // Periode awal netral
+                return calculateRSI(historyData.slice(0, idx + 1), 14);
+            });
+            
             currentMFI = calculateMFI(historyData, 14);
-            currentRSI = calculateRSI(historyData, 14);
+            currentRSI = allRsiValues[allRsiValues.length - 1];
             currentADX = calculateADX(historyData, 14);
+
+            signalTrend = calculateDivergence(historyData, allRsiValues, 20);
         }
 
         return {
@@ -285,7 +294,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             strengthNetOBV: Number(strengthNetOBV.toFixed(4)),
             currentMFI: Number(currentMFI.toFixed(2)),
             currentRSI: Number(currentRSI.toFixed(2)),
-            currentADX: Number(currentADX.toFixed(2))
+            currentADX: Number(currentADX.toFixed(2)),
+            signalTrend: signalTrend
         };
     } catch (error) {
         return { ticker, status: "Error", message: error.message };
