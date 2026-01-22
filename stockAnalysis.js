@@ -259,13 +259,13 @@ function calculateDivergence(candles, indicators, lookback = 20) {
       if (pLow.length >= 1 && iLow.length >= 1) {
         const lastPLow = pLow[pLow.length - 1].value;
         const lastILow = iLow[iLow.length - 1].value;
-        if (lastP < lastPLow && lastI > lastILow && lastI < 80) return "POTENSI BULLISH (Single Pivot)";
+        if (lastP < lastPLow && lastI > lastILow && lastI < 80) return "POTENSI BULLISH";
       }
       // Sinyal Awal Bearish
       if (pHigh.length >= 1 && iHigh.length >= 1) {
         const lastPHigh = pHigh[pHigh.length - 1].value;
         const lastIHigh = iHigh[iHigh.length - 1].value;
-        if (lastP > lastPHigh && lastI < lastIHigh && lastI > 20) return "POTENSI BEARISH (Single Pivot)";
+        if (lastP > lastPHigh && lastI < lastIHigh && lastI > 20) return "POTENSI BEARISH";
       }
       return "-";
     }
@@ -283,17 +283,17 @@ function calculateDivergence(candles, indicators, lookback = 20) {
 
     // BULLISH DIVERGENCE
     if (pLow2.value < pLow1.value && iLow2.value > iLow1.value) {
-      return "STRONG BULLISH DIVERGENCE";
+      return "BULLISH DIVERGENCE";
     }
 
     // BEARISH DIVERGENCE
     if (pHigh2.value > pHigh1.value && iHigh2.value < iHigh1.value) {
-      return "STRONG BEARISH DIVERGENCE";
+      return "BEARISH DIVERGENCE";
     }
 
     // CONVERGENCE (CONTINUATION)
-    if (pHigh2.value > pHigh1.value && iHigh2.value > iHigh1.value) return "BULLISH CONTINUATION";
-    if (pLow2.value < pLow1.value && iLow2.value < iLow1.value) return "BEARISH CONTINUATION";
+    if (pHigh2.value > pHigh1.value && iHigh2.value > iHigh1.value) return "BULLISH CONTINU";
+    if (pLow2.value < pLow1.value && iLow2.value < iLow1.value) return "BEARISH CONTINU";
 
     return "-";
   } catch (err) {
