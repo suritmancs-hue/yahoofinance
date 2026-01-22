@@ -217,7 +217,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let minClose = 0;
         let currentMFI = 0, currentRSI = 0; currentADX = 0;
-        let signalTrend = 0,
+        let signalTrend = 0;
         
         const PERIOD = 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
