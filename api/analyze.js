@@ -55,7 +55,8 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         //const prevCandle2 = mainCandles[n - 3];
         //const prevCandle3 = mainCandles[n - 4];
 
-        const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle.close;
+        //const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle.close;
+        const isBullish = currentCandle.close >= currentCandle.open || currentCandle.close >= currentCandle.open;
                   //(currentCandle.close > currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.015 &&
                   //(currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
                   //(currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
