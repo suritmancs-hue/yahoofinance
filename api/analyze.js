@@ -216,7 +216,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 lrs: null,
                 lastData: {
                     ...latestCandle,
-                    timestamp: convertTimestamp(latestCandle.timestamp)
+                    //timestamp: convertTimestamp(latestCandle.timestamp)
                 },
                 gapValue: null,
                 maxClose: null,
