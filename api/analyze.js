@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS,
-  calculateAverage, calculateMinClose, calculateSTDEV, calculateOpenClose, calculateMFI, calculateRSI
+  calculateAverage, calculateMinClose, calculateSTDEV, calculateOpenClose, calculateMFI, calculateRSI, calculateADX
 } = require('../stockAnalysis');
 
 const UTC_OFFSET_SECONDS = 8 * 60 * 60; 
@@ -202,10 +202,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         const currentMFI = calculateMFI(historyData, 14);
         const currentRSI = calculateRSI(historyData, 14);
+        const currentADX = calculateADX(historyData, 14);
+      
         const isMomentum = 
               latestCandle.volume > 1000000 &&
               latestCandle.volume > prevCandle1.volume && latestCandle.volume > prevCandle2.volume && latestCandle.volume > prevCandle3.volume &&
-              currentMFI > 65 && currentRSI < 100;
+              currentMFI > 65 && currentRSI < 100 && currentADX > 60;
         if (!isMomentum) {
             return {
                 status: "Filtered",
