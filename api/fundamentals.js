@@ -80,9 +80,8 @@ async function fetchFundamentalData(ticker) {
         // Hitung % Institutional terhadap FREE FLOAT
         // Rumus: (Inst % Total * Outstanding) / Float_Lembar
         let instPercentOfFloat = 0;
-        if (floatRaw > 0 && instPercentTotalRaw > 0) {
-          const instShares = instPercentTotalRaw * outstandingRaw;
-          instPercentOfFloat = (instShares / floatRaw) * 100;
+        if (instPercentTotalRaw > 0) {
+          instPercentOfFloat = (instPercentTotalRaw / floatPercent) * 100;
         }
 
         // Penanganan Anomali Data
