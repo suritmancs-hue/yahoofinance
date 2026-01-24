@@ -81,7 +81,7 @@ async function fetchFundamentalData(ticker) {
         // Rumus: (Inst % Total * Outstanding) / Float_Lembar
         let instPercentOfFloat = 0;
         if (instPercentTotalRaw > 0) {
-          instPercentOfFloat = (instPercentTotalRaw / floatPercent) * 100;
+          instPercentOfFloat = 1 / (floatPercent / instPercentTotalRaw) * 100;
         }
 
         // Penanganan Anomali Data
