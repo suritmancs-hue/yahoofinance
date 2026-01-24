@@ -81,7 +81,7 @@ async function fetchFundamentalData(ticker) {
         // Rumus: (Inst % Total * Outstanding) / Float_Lembar
         let instPercentOfFloat = 0;
         if (instPercentTotalRaw > 0) {
-          instPercentOfFloat = (1 / (floatPercent / instPercentTotalRaw)) * 100;
+          instPercentOfFloat = (1 / (floatPercent / instPercentTotalRaw)) * 10000;
         }
 
         // Penanganan Anomali Data
@@ -92,7 +92,7 @@ async function fetchFundamentalData(ticker) {
             marketCap: marketCapRaw, 
             outstanding: outstandingRaw, 
             float: floatRaw,
-            instPercentOfFloat: parseFloat(instPercentOfFloat.toFixed(2)), 
+            instPercentOfFloat: Number(instPercentOfFloat.toFixed(2)),
             insiderPercent: parseFloat(insiderPercentRaw.toFixed(2)),
             floatPercent: parseFloat(floatPercent.toFixed(2))
         };
