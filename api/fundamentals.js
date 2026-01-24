@@ -67,7 +67,7 @@ async function fetchFundamentalData(ticker) {
         let float = floatRaw;
         let floatPercent = 0;
 
-        if (floatRaw ==== 0) {
+        if (floatRaw === 0) {
             float = outstandingRaw * floatPercent / 100;
         } else {
             float = floatRaw;
