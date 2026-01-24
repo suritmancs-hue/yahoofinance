@@ -50,8 +50,7 @@ async function fetchFundamentalData(ticker) {
         const summary = result.summaryDetail || {};
 
         const marketCapRaw = summary.marketCap || 0;
-        //const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
-        const outstandingRaw = stats.sharesOutstanding || 0;
+        const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
         const floatRaw = stats.floatShares || 0;
         const insiderPercentRaw =
               typeof stats.heldPercentInsiders === 'number'
@@ -64,14 +63,7 @@ async function fetchFundamentalData(ticker) {
 
         // Perhitungan Persentase Float: 100% - % Held by Insiders
         // Kita gunakan (1 - insiderPercentRaw) * 100
-        let float = floatRaw;
         let floatPercent = 0;
-
-        if (floatRaw === 0) {
-            float = outstandingRaw * floatPercent / 100;
-        } else {
-            float = floatRaw;
-        }
         
         if (insiderPercentRaw > 0) {
           floatPercent = (1 - insiderPercentRaw) * 100;
@@ -82,9 +74,9 @@ async function fetchFundamentalData(ticker) {
         // Hitung % Institutional terhadap FREE FLOAT
         // Rumus: (Inst % Total * Outstanding) / Float_Lembar
         let instPercentOfFloat = 0;
-        if (float > 0 && instPercentTotalRaw > 0) {
+        if (floatRaw > 0 && instPercentTotalRaw > 0) {
           const instShares = instPercentTotalRaw * outstandingRaw;
-          instPercentOfFloat = (instShares / float) * 100;
+          instPercentOfFloat = (instShares / floatRaw) * 100;
         }
 
         // Penanganan Anomali Data
@@ -94,8 +86,8 @@ async function fetchFundamentalData(ticker) {
             ticker: symbol,
             marketCap: marketCapRaw, 
             outstanding: outstandingRaw, 
-            float: parseFloat(float.toFixed(2)),
-            instPercentOfFloat: parseFloat(instPercentOfFloat.toFixed(2)), 
+            float: floatRaw,
+            instPercentOfFloat: Number(instPercentOfFloat.toFixed(2)), 
             insiderPercent: parseFloat(insiderPercentRaw.toFixed(2)),
             floatPercent: parseFloat(floatPercent.toFixed(2))
         };
