@@ -50,7 +50,8 @@ async function fetchFundamentalData(ticker) {
         const summary = result.summaryDetail || {};
 
         const marketCapRaw = summary.marketCap || 0;
-        const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
+        //const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
+        const outstandingRaw = stats.sharesOutstanding || 0;
         const floatRaw = stats.floatShares || 0;
         const insiderPercentRaw =
               typeof stats.heldPercentInsiders === 'number'
@@ -83,7 +84,7 @@ async function fetchFundamentalData(ticker) {
         let instPercentOfFloat = 0;
         if (float > 0 && instPercentTotalRaw > 0) {
           const instShares = instPercentTotalRaw * outstandingRaw;
-          instPercentOfFloat = (instShares / floatRaw) * 100;
+          instPercentOfFloat = (instShares / float) * 100;
         }
 
         // Penanganan Anomali Data
