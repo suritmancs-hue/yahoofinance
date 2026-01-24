@@ -276,7 +276,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             currentRSI = allRsiValues[allRsiValues.length - 1];
             currentADX = calculateADX(historyData, 14);
 
-            signalTrend = calculateDivergence(historyData, allRsiValues, 20);
+            signalTrend = calculateDivergence(historyData, allRsiValues, 30);
         }
 
         return {
