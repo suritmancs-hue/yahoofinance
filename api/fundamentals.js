@@ -70,11 +70,18 @@ async function fetchFundamentalData(ticker) {
         } else if (outstandingRaw > 0 && floatRaw > 0) {
           floatPercent = (floatRaw / outstandingRaw) * 100;
         }
+        
+        let float = 0;
+        if (floatRaw = 0) {
+            float = outstandingRaw * floatPercent / 100;
+        } else {
+            float = floatRaw;
+        } 
 
         // Hitung % Institutional terhadap FREE FLOAT
         // Rumus: (Inst % Total * Outstanding) / Float_Lembar
         let instPercentOfFloat = 0;
-        if (floatRaw > 0 && instPercentTotalRaw > 0) {
+        if (float > 0 && instPercentTotalRaw > 0) {
           const instShares = instPercentTotalRaw * outstandingRaw;
           instPercentOfFloat = (instShares / floatRaw) * 100;
         }
@@ -86,7 +93,7 @@ async function fetchFundamentalData(ticker) {
             ticker: symbol,
             marketCap: marketCapRaw, 
             outstanding: outstandingRaw, 
-            float: floatRaw,
+            float: float,
             instPercentOfFloat: Number(instPercentOfFloat.toFixed(2)), 
             insiderPercent: parseFloat(insiderPercentRaw.toFixed(2)),
             floatPercent: parseFloat(floatPercent.toFixed(2))
