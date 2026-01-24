@@ -50,7 +50,8 @@ async function fetchFundamentalData(ticker) {
         const summary = result.summaryDetail || {};
 
         const marketCapRaw = summary.marketCap || 0;
-        const outstandingRaw = stats.impliedSharesOutstanding || stats.sharesOutstanding || 0;
+        const shares = stats.sharesOutstanding || 0;
+        const impliedShares = stats.impliedSharesOutstanding || 0;
         const floatRaw = stats.floatShares || 0;
         const insiderPercentRaw =
               typeof stats.heldPercentInsiders === 'number'
@@ -60,6 +61,11 @@ async function fetchFundamentalData(ticker) {
               typeof stats.heldPercentInstitutions === 'number'
                 ? stats.heldPercentInstitutions
                 : 0;
+
+        let outstandingRaw = shares;
+        if (floatRaw > shares) {
+            outstandingRaw = impliedShares;
+        }
 
         // Perhitungan Persentase Float: 100% - % Held by Insiders
         // Kita gunakan (1 - insiderPercentRaw) * 100
