@@ -227,73 +227,79 @@ function calculateDivergence(candles, indicators, lookback = 20) {
 
     if (len < 5) return "Menunggu Data";
 
-    // PIVOT DETECTOR
-    const findPivots = (arr, type) => {
-      let pivots = [];
-      for (let i = 1; i < arr.length - 1; i++) {
-        if (
-          (type === 'low' && arr[i] < arr[i - 1] && arr[i] < arr[i + 1]) ||
-          (type === 'high' && arr[i] > arr[i - 1] && arr[i] > arr[i + 1])
-        ) {
-          pivots.push({ index: i, value: arr[i] });
-        }
-      }
-      return pivots;
-    };
-
+    // Slice data berdasarkan lookback
     const sliceStart = Math.max(0, len - lookback);
     const pSlice = closes.slice(sliceStart);
     const iSlice = indicators.slice(sliceStart);
 
-    const pLow = findPivots(pSlice, 'low');
+    // =============================
+    // PIVOT DETECTOR (Real-Time 2nd Pivot)
+    // =============================
+    const findPivots = (arr, type) => {
+      let pivots = [];
+      for (let i = 1; i < arr.length; i++) {
+        let isPivot = false;
+
+        // Pivot Standard (Cek Kiri & Kanan untuk bar tengah)
+        if (i < arr.length - 1) {
+          if (type === 'low' && arr[i] < arr[i - 1] && arr[i] < arr[i + 1]) isPivot = true;
+          if (type === 'high' && arr[i] > arr[i - 1] && arr[i] > arr[i + 1]) isPivot = true;
+        } 
+        // Pivot Terakhir / Real-time (Hanya Cek Kiri untuk bar paling ujung)
+        else {
+          if (type === 'low' && arr[i] < arr[i - 1]) isPivot = true;
+          if (type === 'high' && arr[i] > arr[i - 1]) isPivot = true;
+        }
+
+        if (isPivot) pivots.push({ value: arr[i] });
+      }
+      return pivots;
+    };
+
+    const pLow  = findPivots(pSlice, 'low');
     const pHigh = findPivots(pSlice, 'high');
-    const iLow = findPivots(iSlice, 'low');
+    const iLow  = findPivots(iSlice, 'low');
     const iHigh = findPivots(iSlice, 'high');
 
+    // Data terakhir untuk pengecekan potensi
     const lastP = pSlice[pSlice.length - 1];
     const lastI = iSlice[iSlice.length - 1];
 
-    // LOGIKA KETIKA PIVOT TIDAK LENGKAP (< 2)
-    if (pLow.length < 2 || pHigh.length < 2 || iLow.length < 2 || iHigh.length < 2) {
-      // Sinyal Awal Bullish
-      if (pLow.length >= 1 && iLow.length >= 1) {
-        const lastPLow = pLow[pLow.length - 1].value;
-        const lastILow = iLow[iLow.length - 1].value;
-        if (lastP < lastPLow && lastI > lastILow && lastI < 80) return "POTENSI BULLISH";
+    // ===========================================
+    // LOGIKA DIVERGENSI, CONTINU & POTENSI
+    // ===========================================
+
+    // BULLISH LOGIC
+    if (pLow.length >= 2 && iLow.length >= 2) {
+      const pL1 = pLow[pLow.length - 2].value;
+      const pL2 = pLow[pLow.length - 1].value;
+      const iL1 = iLow[iLow.length - 2].value;
+      const iL2 = iLow[iLow.length - 1].value;
+
+      if (pL2 < pL1 && iL2 > iL1) return "BULLISH DIVERGENCE";
+      if (pL2 < pL1 && iL2 < iL1) return "BEARISH CONTINU";
+    } 
+    else if (pLow.length >= 1 && iLow.length >= 1) {
+      if (lastP < pLow[pLow.length - 1].value && lastI > iLow[iLow.length - 1].value) {
+        return "POTENSI BULLISH";
       }
-      // Sinyal Awal Bearish
-      if (pHigh.length >= 1 && iHigh.length >= 1) {
-        const lastPHigh = pHigh[pHigh.length - 1].value;
-        const lastIHigh = iHigh[iHigh.length - 1].value;
-        if (lastP > lastPHigh && lastI < lastIHigh && lastI > 20) return "POTENSI BEARISH";
+    }
+
+    // BEARISH LOGIC
+    if (pHigh.length >= 2 && iHigh.length >= 2) {
+      const pH1 = pHigh[pHigh.length - 2].value;
+      const pH2 = pHigh[pHigh.length - 1].value;
+      const iH1 = iHigh[iHigh.length - 2].value;
+      const iH2 = iHigh[iHigh.length - 1].value;
+
+      if (pH2 > pH1 && iH2 < iH1) return "BEARISH DIVERGENCE";
+      if (pH2 > pH1 && iH2 > iH1) return "BULLISH CONTINU";
+    } 
+    else if (pHigh.length >= 1 && iHigh.length >= 1) {
+      if (lastP > pHigh[pHigh.length - 1].value && lastI < iHigh[iHigh.length - 1].value) {
+        return "POTENSI BEARISH";
       }
-      return "-";
     }
-
-    // LOGIKA DIVERGENSI STANDAR (2 PIVOT)
-    const pLow1 = pLow[pLow.length - 2];
-    const pLow2 = pLow[pLow.length - 1];
-    const pHigh1 = pHigh[pHigh.length - 2];
-    const pHigh2 = pHigh[pHigh.length - 1];
-
-    const iLow1 = iLow[iLow.length - 2];
-    const iLow2 = iLow[iLow.length - 1];
-    const iHigh1 = iHigh[iHigh.length - 2];
-    const iHigh2 = iHigh[iHigh.length - 1];
-
-    // BULLISH DIVERGENCE
-    if (pLow2.value < pLow1.value && iLow2.value > iLow1.value) {
-      return "BULLISH DIVERGENCE";
-    }
-
-    // BEARISH DIVERGENCE
-    if (pHigh2.value > pHigh1.value && iHigh2.value < iHigh1.value) {
-      return "BEARISH DIVERGENCE";
-    }
-
-    // CONVERGENCE (CONTINUATION)
-    if (pHigh2.value > pHigh1.value && iHigh2.value > iHigh1.value) return "BULLISH CONTINU";
-    if (pLow2.value < pLow1.value && iLow2.value < iLow1.value) return "BEARISH CONTINU";
 
     return "-";
   } catch (err) {
