@@ -268,8 +268,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             // Hitung array ADX secara efisien untuk seluruh historyData
             const allADXValues = historyData.map((_, idx) => {
-                if (idx < 20) return 50; // Periode awal netral
-                return calculateADX(historyData.slice(0, idx + 1), 20);
+                if (idx < 14) return 50; // Periode awal netral
+                return calculateADX(historyData.slice(0, idx + 1), 14);
             });
             
             currentMFI = calculateMFI(historyData, 14);
