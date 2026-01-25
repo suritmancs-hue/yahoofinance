@@ -220,7 +220,7 @@ function calculateADX(candles, period = 14) {
  * @param {Array} indicators Array nilai indikator (misal RSI/MFI/ADX)
  * @param {number} lookback Periode pengecekan
  */
-function calculateDivergence(candles, indicators, lookback = 20) {
+function calculateDivergence(candles, indicators, lookback = 25) {
   try {
     const closes = candles.map(c => c.close);
     const len = Math.min(closes.length, indicators.length);
@@ -232,73 +232,76 @@ function calculateDivergence(candles, indicators, lookback = 20) {
     const pSlice = closes.slice(sliceStart);
     const iSlice = indicators.slice(sliceStart);
 
-    // =============================
-    // PIVOT DETECTOR (Real-Time 2nd Pivot)
-    // =============================
-    const findPivots = (arr, type) => {
+    // ===========================================
+    // PIVOT DETECTOR (Pivot 1: Static | Pivot 2: Last Bar)
+    // ===========================================
+    const findPivotsWithLast = (arr, type) => {
       let pivots = [];
-      for (let i = 1; i < arr.length; i++) {
+      
+      // 1. Cari Pivot 1 (Statis - butuh konfirmasi kiri & kanan)
+      // Kita sisir sampai bar sebelum terakhir
+      for (let i = 1; i < arr.length - 1; i++) {
         let isPivot = false;
+        if (type === 'low' && arr[i] <= arr[i - 1] && arr[i] < arr[i + 1]) isPivot = true;
+        if (type === 'high' && arr[i] >= arr[i - 1] && arr[i] > arr[i + 1]) isPivot = true;
 
-        // Pivot Standard (Cek Kiri & Kanan untuk bar tengah)
-        if (i < arr.length - 1) {
-          if (type === 'low' && arr[i] < arr[i - 1] && arr[i] < arr[i + 1]) isPivot = true;
-          if (type === 'high' && arr[i] > arr[i - 1] && arr[i] > arr[i + 1]) isPivot = true;
-        } 
-        // Pivot Terakhir / Real-time (Hanya Cek Kiri untuk bar paling ujung)
-        else {
-          if (type === 'low' && arr[i] < arr[i - 1]) isPivot = true;
-          if (type === 'high' && arr[i] > arr[i - 1]) isPivot = true;
+        if (isPivot) {
+          // Jika nilai sama, ambil index yang paling baru (kanan)
+          if (pivots.length > 0 && pivots[pivots.length - 1].value === arr[i]) {
+            pivots[pivots.length - 1].index = i;
+          } else {
+            pivots.push({ index: i, value: arr[i] });
+          }
         }
-
-        if (isPivot) pivots.push({ value: arr[i] });
       }
+
+      // 2. PAKSA Bar Terakhir sebagai Pivot 2
+      let lastIdx = arr.length - 1;
+      pivots.push({ index: lastIdx, value: arr[lastIdx] });
+      
       return pivots;
     };
 
-    const pLow  = findPivots(pSlice, 'low');
-    const pHigh = findPivots(pSlice, 'high');
-    const iLow  = findPivots(iSlice, 'low');
-    const iHigh = findPivots(iSlice, 'high');
+    // WINDOW SLICE HELPER (Tolerance = 1 sesuai script GAS Anda)
+    const getAlignedVal = (pIdx, iArr, type) => {
+      let tolerance = 1; 
+      let start = Math.max(0, pIdx - tolerance);
+      let end = Math.min(iArr.length - 1, pIdx + tolerance);
+      let window = iArr.slice(start, end + 1);
+      return type === 'low' ? Math.min(...window) : Math.max(...window);
+    };
 
-    // Data terakhir untuk pengecekan potensi
-    const lastP = pSlice[pSlice.length - 1];
-    const lastI = iSlice[iSlice.length - 1];
+    const pLow  = findPivotsWithLast(pSlice, 'low');
+    const pHigh = findPivotsWithLast(pSlice, 'high');
 
     // ===========================================
-    // LOGIKA DIVERGENSI, CONTINU & POTENSI
+    // LOGIKA PERBANDINGAN (Pivot 1 vs Last Bar)
     // ===========================================
 
-    // BULLISH LOGIC
-    if (pLow.length >= 2 && iLow.length >= 2) {
-      const pL1 = pLow[pLow.length - 2].value;
-      const pL2 = pLow[pLow.length - 1].value;
-      const iL1 = iLow[iLow.length - 2].value;
-      const iL2 = iLow[iLow.length - 1].value;
+    // CEK BEARISH LOGIC (Highs)
+    if (pHigh.length >= 2) {
+      const pH1 = pHigh[pHigh.length - 2]; // Pivot Statis Terakhir
+      const pH2 = pHigh[pHigh.length - 1]; // PASTI Bar Terakhir
+      
+      const iH1Val = getAlignedVal(pH1.index, iSlice, 'high');
+      const iH2Val = getAlignedVal(pH2.index, iSlice, 'high');
 
-      if (pL2 < pL1 && iL2 > iL1) return "BULLISH DIVERGENCE";
-      if (pL2 < pL1 && iL2 < iL1) return "BEARISH CONTINU";
-    } 
-    else if (pLow.length >= 1 && iLow.length >= 1) {
-      if (lastP < pLow[pLow.length - 1].value && lastI > iLow[iLow.length - 1].value) {
-        return "POTENSI BULLISH";
-      }
+      // PRIORITAS: Cek Kontinuasi dulu sesuai GAS
+      if (pH2.value > pH1.value && iH2Val > iH1Val) return "BULLISH CONTINU";
+      if (pH2.value > pH1.value && iH2Val < iH1Val) return "BEARISH DIVERGENCE";
     }
 
-    // BEARISH LOGIC
-    if (pHigh.length >= 2 && iHigh.length >= 2) {
-      const pH1 = pHigh[pHigh.length - 2].value;
-      const pH2 = pHigh[pHigh.length - 1].value;
-      const iH1 = iHigh[iHigh.length - 2].value;
-      const iH2 = iHigh[iHigh.length - 1].value;
+    // CEK BULLISH LOGIC (Lows)
+    if (pLow.length >= 2) {
+      const pL1 = pLow[pLow.length - 2]; // Pivot Statis Terakhir
+      const pL2 = pLow[pLow.length - 1]; // PASTI Bar Terakhir
+      
+      const iL1Val = getAlignedVal(pL1.index, iSlice, 'low');
+      const iL2Val = getAlignedVal(pL2.index, iSlice, 'low');
 
-      if (pH2 > pH1 && iH2 < iH1) return "BEARISH DIVERGENCE";
-      if (pH2 > pH1 && iH2 > iH1) return "BULLISH CONTINU";
-    } 
-    else if (pHigh.length >= 1 && iHigh.length >= 1) {
-      if (lastP > pHigh[pHigh.length - 1].value && lastI < iHigh[iHigh.length - 1].value) {
-        return "POTENSI BEARISH";
-      }
+      // PRIORITAS: Cek Kontinuasi dulu sesuai GAS
+      if (pL2.value < pL1.value && iL2Val < iL1Val) return "BEARISH CONTINU";
+      if (pL2.value < pL1.value && iL2Val > iL1Val) return "BULLISH DIVERGENCE";
     }
 
     return "-";
