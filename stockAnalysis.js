@@ -215,100 +215,188 @@ function calculateADX(candles, period = 14) {
 }
 
 /**
- * Mendeteksi Divergensi menggunakan Swing-Based Pivot (High/Low)
- * @param {Array} candles Array objek OHLC
- * @param {Array} indicators Array nilai indikator (misal RSI/MFI/ADX)
- * @param {number} lookback Periode pengecekan
+ * Swing-Based Divergence Detection (IDX Optimized)
+ * Pivot-2 = Current Bar (Realtime)
+ * Output IDENTIK dengan GAS
+ *
+ * @param {Array} candles Array objek OHLC {open, high, low, close}
+ * @param {Array} indicators Array indikator (RSI / MFI / MACD line)
+ * @param {number} lookback Default 50 (40–60 ideal IDX 1D)
  */
-function calculateDivergence(candles, indicators, lookback = 25) {
+function calculateDivergence(candles, indicators, lookback = 50) {
   try {
     const closes = candles.map(c => c.close);
     const len = Math.min(closes.length, indicators.length);
+    if (len < lookback) return "Menunggu Data";
 
-    if (len < 5) return "Menunggu Data";
+    const pSlice = closes.slice(-lookback);
+    const iSlice = indicators.slice(-lookback);
 
-    // Slice data berdasarkan lookback
-    const sliceStart = Math.max(0, len - lookback);
-    const pSlice = closes.slice(sliceStart);
-    const iSlice = indicators.slice(sliceStart);
+    /* ==========================
+     * ATR (14)
+     * ========================== */
+    const calcATR = (arr, period = 14) => {
+      let trs = [];
+      for (let i = 1; i < arr.length; i++) {
+        trs.push(Math.abs(arr[i] - arr[i - 1]));
+      }
+      if (trs.length < period) return null;
+      return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
+    };
 
-    // ===========================================
-    // PIVOT DETECTOR (Pivot 1: Static | Pivot 2: Last Bar)
-    // ===========================================
-    const findPivotsWithLast = (arr, type) => {
-      let pivots = [];
-      
-      // 1. Cari Pivot 1 (Statis - butuh konfirmasi kiri & kanan)
-      // Kita sisir sampai bar sebelum terakhir
-      for (let i = 1; i < arr.length - 1; i++) {
-        let isPivot = false;
-        if (type === 'low' && arr[i] <= arr[i - 1] && arr[i] < arr[i + 1]) isPivot = true;
-        if (type === 'high' && arr[i] >= arr[i - 1] && arr[i] > arr[i + 1]) isPivot = true;
+    const atr = calcATR(pSlice);
+    if (!atr || atr === 0) return "Menunggu Data";
+
+    /* ==========================
+     * IDX-GRADE PIVOT ENGINE
+     * ========================== */
+    const findPivotsWithLast = (
+      arr,
+      type,
+      strength = 3,
+      minATRMultiple = 1.0,
+      minBarGap = 5
+    ) => {
+      const pivots = [];
+      const L = arr.length;
+      const minMove = atr * minATRMultiple;
+      const gap = type === 'low' ? minBarGap - 1 : minBarGap;
+
+      for (let i = strength; i < L - strength; i++) {
+        let isPivot = true;
+
+        for (let j = 1; j <= strength; j++) {
+          if (type === 'low'  && (arr[i] > arr[i - j] || arr[i] > arr[i + j])) isPivot = false;
+          if (type === 'high' && (arr[i] < arr[i - j] || arr[i] < arr[i + j])) isPivot = false;
+          if (!isPivot) break;
+        }
 
         if (isPivot) {
-          // Jika nilai sama, ambil index yang paling baru (kanan)
-          if (pivots.length > 0 && pivots[pivots.length - 1].value === arr[i]) {
-            pivots[pivots.length - 1].index = i;
-          } else {
+          const last = pivots[pivots.length - 1];
+          if (
+            !last ||
+            (
+              Math.abs(arr[i] - last.value) >= minMove &&
+              (i - last.index) >= gap
+            )
+          ) {
             pivots.push({ index: i, value: arr[i] });
           }
         }
       }
 
-      // 2. PAKSA Bar Terakhir sebagai Pivot 2
-      let lastIdx = arr.length - 1;
-      pivots.push({ index: lastIdx, value: arr[lastIdx] });
-      
+      // Pivot-2 = realtime bar
+      pivots.push({ index: L - 1, value: arr[L - 1] });
       return pivots;
     };
 
-    // WINDOW SLICE HELPER (Tolerance = 1 sesuai script GAS Anda)
+    /* ==========================
+     * ALIGN INDICATOR (±1 bar)
+     * ========================== */
     const getAlignedVal = (pIdx, iArr, type) => {
-      let tolerance = 1; 
-      let start = Math.max(0, pIdx - tolerance);
-      let end = Math.min(iArr.length - 1, pIdx + tolerance);
-      let window = iArr.slice(start, end + 1);
-      return type === 'low' ? Math.min(...window) : Math.max(...window);
+      const w = iArr.slice(
+        Math.max(0, pIdx - 1),
+        Math.min(iArr.length, pIdx + 2)
+      );
+      return type === 'low' ? Math.min(...w) : Math.max(...w);
     };
 
     const pLow  = findPivotsWithLast(pSlice, 'low');
     const pHigh = findPivotsWithLast(pSlice, 'high');
 
-    // ===========================================
-    // LOGIKA PERBANDINGAN (Pivot 1 vs Last Bar)
-    // ===========================================
+    /* =================================================
+     * 1️⃣ BULLISH DIVERGENCE (REVERSAL – SENSITIVE)
+     * ================================================= */
+    if (pLow.length >= 2) {
+      const p1 = pLow[pLow.length - 2];
+      const p2 = pLow[pLow.length - 1];
+      const i1 = getAlignedVal(p1.index, iSlice, 'low');
+      const i2 = getAlignedVal(p2.index, iSlice, 'low');
 
-    // CEK BEARISH LOGIC (Highs)
-    if (pHigh.length >= 2) {
-      const pH1 = pHigh[pHigh.length - 2]; // Pivot Statis Terakhir
-      const pH2 = pHigh[pHigh.length - 1]; // PASTI Bar Terakhir
-      
-      const iH1Val = getAlignedVal(pH1.index, iSlice, 'high');
-      const iH2Val = getAlignedVal(pH2.index, iSlice, 'high');
-
-      // PRIORITAS: Cek Kontinuasi dulu sesuai GAS
-      if (pH2.value > pH1.value && iH2Val > iH1Val) return "BULLISH CONTINU";
-      if (pH2.value > pH1.value && iH2Val < iH1Val) return "BEARISH DIVERGENCE";
+      if (
+        p2.value <= p1.value + 0.3 * atr &&
+        i2 > i1
+      ) {
+        return "BULLISH DIVERGENCE";
+      }
     }
 
-    // CEK BULLISH LOGIC (Lows)
-    if (pLow.length >= 2) {
-      const pL1 = pLow[pLow.length - 2]; // Pivot Statis Terakhir
-      const pL2 = pLow[pLow.length - 1]; // PASTI Bar Terakhir
-      
-      const iL1Val = getAlignedVal(pL1.index, iSlice, 'low');
-      const iL2Val = getAlignedVal(pL2.index, iSlice, 'low');
+    /* ==========================================
+     * 2️⃣ HIDDEN BULLISH (PULLBACK)
+     * ========================================== */
+    if (pLow.length >= 3) {
+      const p0 = pLow[pLow.length - 3];
+      const p1 = pLow[pLow.length - 2];
+      const p2 = pLow[pLow.length - 1];
+      const i1 = getAlignedVal(p1.index, iSlice, 'low');
+      const i2 = getAlignedVal(p2.index, iSlice, 'low');
 
-      // PRIORITAS: Cek Kontinuasi dulu sesuai GAS
-      if (pL2.value < pL1.value && iL2Val < iL1Val) return "BEARISH CONTINU";
-      if (pL2.value < pL1.value && iL2Val > iL1Val) return "BULLISH DIVERGENCE";
+      if (
+        p1.value > p0.value &&
+        p2.value >= p1.value - 0.3 * atr &&
+        i2 < i1
+      ) {
+        return "HIDDEN BULLISH";
+      }
+    }
+
+    /* ==========================================
+     * 3️⃣ BULLISH CONTINUATION
+     * ========================================== */
+    if (pLow.length >= 2 && pHigh.length >= 2) {
+      const pL1 = pLow[pLow.length - 2];
+      const pL2 = pLow[pLow.length - 1];
+      const pH1 = pHigh[pHigh.length - 2];
+      const pH2 = pHigh[pHigh.length - 1];
+
+      const iL1 = getAlignedVal(pL1.index, iSlice, 'low');
+      const iL2 = getAlignedVal(pL2.index, iSlice, 'low');
+      const iH1 = getAlignedVal(pH1.index, iSlice, 'high');
+      const iH2 = getAlignedVal(pH2.index, iSlice, 'high');
+
+      if (
+        (pL2.value >= pL1.value && iL2 >= iL1) ||
+        (pH2.value > pH1.value && iH2 > iH1)
+      ) {
+        return "BULLISH CONTINU";
+      }
+    }
+
+    /* ==========================================
+     * 4️⃣ BEARISH DIVERGENCE
+     * ========================================== */
+    if (pHigh.length >= 2) {
+      const p1 = pHigh[pHigh.length - 2];
+      const p2 = pHigh[pHigh.length - 1];
+      const i1 = getAlignedVal(p1.index, iSlice, 'high');
+      const i2 = getAlignedVal(p2.index, iSlice, 'high');
+
+      if (p2.value > p1.value && i2 < i1) {
+        return "BEARISH DIVERGENCE";
+      }
+    }
+
+    /* ==========================================
+     * 5️⃣ BEARISH CONTINUATION
+     * ========================================== */
+    if (pHigh.length >= 2) {
+      const p1 = pHigh[pHigh.length - 2];
+      const p2 = pHigh[pHigh.length - 1];
+      const i1 = getAlignedVal(p1.index, iSlice, 'high');
+      const i2 = getAlignedVal(p2.index, iSlice, 'high');
+
+      if (p2.value < p1.value && i2 < i1) {
+        return "BEARISH CONTINU";
+      }
     }
 
     return "-";
+
   } catch (err) {
     return "Error: " + err.message;
   }
 }
+
 
 module.exports = {
   calculateAverage,
