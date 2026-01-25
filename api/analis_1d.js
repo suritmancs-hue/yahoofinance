@@ -266,17 +266,17 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
 
-            // Hitung array RSI secara efisien untuk seluruh historyData
-            const allRsiValues = historyData.map((_, idx) => {
-                if (idx < 14) return 50; // Periode awal netral
-                return calculateRSI(historyData.slice(0, idx + 1), 14);
+            // Hitung array ADX secara efisien untuk seluruh historyData
+            const allADXValues = historyData.map((_, idx) => {
+                if (idx < 20) return 50; // Periode awal netral
+                return calculateADX(historyData.slice(0, idx + 1), 20);
             });
             
             currentMFI = calculateMFI(historyData, 14);
-            currentRSI = allRsiValues[allRsiValues.length - 1];
-            currentADX = calculateADX(historyData, 14);
+            currentRSI = calculateRSI(historyData, 14);
+            currentADX = allADXValues[allADXValues.length - 1];
 
-            signalTrend = calculateDivergence(historyData, allRsiValues, 30);
+            signalTrend = calculateDivergence(historyData, allADXValues, 25);
         }
 
         return {
