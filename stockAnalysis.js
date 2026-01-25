@@ -217,7 +217,7 @@ function calculateADX(candles, period = 14) {
 /**
  * Mendeteksi Divergensi menggunakan Swing-Based Pivot (High/Low)
  * @param {Array} candles Array objek OHLC
- * @param {Array} indicators Array nilai indikator (misal RSI atau MFI)
+ * @param {Array} indicators Array nilai indikator (misal RSI/MFI/ADX)
  * @param {number} lookback Periode pengecekan
  */
 function calculateDivergence(candles, indicators, lookback = 20) {
