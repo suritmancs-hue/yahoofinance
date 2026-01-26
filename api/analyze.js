@@ -204,7 +204,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const currentADX = calculateADX(historyData, 14);
       
         const isMomentum = 
-              latestCandle.volume > 1000000 &&
+              latestCandle.volume > 500000 &&
               latestCandle.volume > prevCandle1.volume && latestCandle.volume > prevCandle2.volume && latestCandle.volume > prevCandle3.volume &&
               currentMFI > 65 && currentRSI < 100 && currentADX > 55;
         if (!isMomentum) {
