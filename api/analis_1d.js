@@ -2,12 +2,12 @@
  * analis_1D.js
  */
 const { 
-  calculateMA, calculateVolatilityRatio, calculateLRS,
+  calculateMA, calculateVolatilityRatio, calculateLRS, calculateATRP, calculateRange, 
   calculateAverage, calculateMinClose, calculateSTDEV, 
   calculateMFI, calculateRSI, calculateADX, calculateDivergence
 } = require('../stockAnalysis');
 
-const OFFSET = 3;
+const OFFSET = 1;
 const TZ_OFFSET = 8 * 3600; //UTC+8
 
 function toIDX(ts) {
@@ -62,33 +62,6 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
         const n = mainCandles.length;
         const currentCandle = mainCandles[n - 1];
-        const previousCandle = mainCandles[n - 2];
-
-        // Syarat: Close > Prev Close DAN Close > Open DAN Volume > 1jt
-        const isBullish = (currentCandle.close >= previousCandle.close) && (currentCandle.close >= currentCandle.open) && currentCandle.volume > 1000000;
-        if (!isBullish) {
-            return {
-                status: "Filtered",
-                ticker,
-                volSpikeRatio: null,
-                avgVol: null,
-                volatilityRatio: null,
-                lrs: null,
-                lastData: {
-                    ...currentCandle,
-                    timestamp: convertTimestamp(currentCandle.timestamp)
-                },
-                gapValue: null,
-                minClose: null,
-                currentDeltaOBV: null,
-                currentNetOBV: null,
-                avgNetOBV: null,
-                strengthNetOBV: null,
-                mfi: null,
-                rsi: null,
-                adx: null,
-            };
-        };
 
         const subRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${subinterval}&range=${subRange}`);
         const subData = await subRes.json();
@@ -213,11 +186,11 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         //console.log(`normNetOBV : ${normNetOBV}`);
 
         const latestCandle = historyData[n - 1];
-        let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, avgLRS = 0;
+        let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0; currentRange = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let minClose = 0;
         let currentMFI = 0, currentRSI = 0, currentADX = 0;
-        let signalTrend = 0;
+        //let signalTrend = 0;
         
         const PERIOD = 25;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1; // Penjaga agar slice tidak out of bounds
@@ -245,18 +218,9 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             // --- Indikator Lainnya ---
             minClose = calculateMinClose(historyData.slice(0, -1), 3);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
-
-            const arrayLRS = [];
-            const lrsEnd = n - OFFSET;
-            const avgCount = Math.floor((PERIOD + 1) / 2);
-            for (let t = lrsEnd - 1; t >= lrsEnd - avgCount; t--) {
-                const windowCloses = historyData.slice(t - PERIOD + 1, t + 1).map(d => d.close);
-                if (windowCloses.length === PERIOD) {
-                    const lrsValue = calculateLRS(windowCloses, PERIOD);
-                    arrayLRS.push(Math.abs(lrsValue));
-                }
-            }
-            avgLRS = arrayLRS.length > 0 ? calculateAverage(arrayLRS) : 0;
+            currentLRS = calculateLRS(historyData, PERIOD);
+            currentATRP = calculateATRP(historyData, 14);
+            currentRange = calculateRange(historyData, 14);
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
@@ -274,19 +238,21 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             
             currentMFI = calculateMFI(historyData, 14);
             currentRSI = calculateRSI(historyData, 14);
-            currentADX = allADXValues[allADXValues.length - 1];
+            currentADX = calculateADX(historyData, 14);
+            //currentADX = allADXValues[allADXValues.length - 1];
 
-            signalTrend = calculateDivergence(historyData, allADXValues, 25);
+            //signalTrend = calculateDivergence(historyData, allADXValues, 25);
         }
 
         return {
             status: "Sukses", ticker,
+            lastData: latestCandle,
             volSpikeRatio: Number(volSpikeRatio.toFixed(4)),
             avgVol: Number(avgVol.toFixed(4)),
             volatilityRatio: Number(volatilityRatio.toFixed(4)),
-            lrs: Number(avgLRS.toFixed(4)),
-            lastData: latestCandle,
-            gapValue: Number((latestCandle.open / historyData[n-2].close).toFixed(4)),
+            lrs: Number(currentLRS.toFixed(4)),
+            currentATRP: Number(currentATRP.toFixed(4)),
+            currentRange: Number(currentRange.toFixed(4)),
             minClose: Number(minClose.toFixed(2)),
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
@@ -294,8 +260,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             strengthNetOBV: Number(strengthNetOBV.toFixed(4)),
             currentMFI: Number(currentMFI.toFixed(2)),
             currentRSI: Number(currentRSI.toFixed(2)),
-            currentADX: Number(currentADX.toFixed(2)),
-            signalTrend: signalTrend
+            currentADX: Number(currentADX.toFixed(2))
         };
     } catch (error) {
         return { ticker, status: "Error", message: error.message };
