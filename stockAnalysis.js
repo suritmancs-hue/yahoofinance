@@ -41,6 +41,58 @@ function calculateLRS(closesArray, period) {
   return avg === 0 ? 0 : (slope / avg) * 100;
 }
 
+/**
+ * Menghitung Average True Range Percentage (ATRP)
+ * Rumus: (Average(TR, period) / CurrentClose) * 100
+ */
+function calculateATRP(candles, period = 14) {
+  if (!candles || candles.length <= period) return 0;
+
+  let trValues = [];
+
+  // Hitung TR untuk setiap candle yang memungkinkan
+  for (let i = 1; i < candles.length; i++) {
+    const current = candles[i];
+    const prev = candles[i - 1];
+
+    const tr = Math.max(
+      current.high - current.low,
+      Math.abs(current.high - prev.close),
+      Math.abs(current.low - prev.close)
+    );
+    trValues.push(tr);
+  }
+
+  // Ambil TR sesuai periode terakhir
+  const relevantTR = trValues.slice(-period);
+  if (relevantTR.length < period) return 0;
+
+  const averageTR = relevantTR.reduce((a, b) => a + b, 0) / period;
+  const currentClose = candles[candles.length - 1].close;
+
+  if (currentClose === 0) return 0;
+
+  return (averageTR / currentClose) * 100;
+}
+
+/**
+ * Menghitung Range Percentage
+ * Rumus: ((Average(High, period) - Average(Low, period)) / CurrentClose) * 100
+ */
+function calculateRange(candles, period = 14) {
+  if (!candles || candles.length < period) return 0;
+
+  // Mengambil subset data sesuai periode dari belakang
+  const relevantHistory = candles.slice(-period);
+  const avgHigh = relevantHistory.reduce((sum, candle) => sum + candle.high, 0) / period;
+  const avgLow = relevantHistory.reduce((sum, candle) => sum + candle.low, 0) / period;
+  const currentClose = candles[candles.length - 1].close;
+
+  if (currentClose === 0) return 0;
+
+  return ((avgHigh - avgLow) / currentClose) * 100;
+}
+
 function calculateMaxClose(historicalDataArray, period) {
   if (historicalDataArray.length < period) return 0; 
   const closes = historicalDataArray.slice(-period).map(candle => candle.close);
@@ -217,8 +269,6 @@ function calculateADX(candles, period = 14) {
 /**
  * Swing-Based Divergence Detection (IDX Optimized)
  * Pivot-2 = Current Bar (Realtime)
- * Output IDENTIK dengan GAS
- *
  * @param {Array} candles Array objek OHLC {open, high, low, close}
  * @param {Array} indicators Array indikator (RSI / MFI / MACD line)
  * @param {number} lookback Default 50 (40–60 ideal IDX 1D)
@@ -403,6 +453,8 @@ module.exports = {
   calculateMA, 
   calculateVolatilityRatio,
   calculateLRS, 
+  calculateATRP, 
+  calculateRange, 
   calculateMaxClose, 
   calculateMinClose, 
   calculateOpenClose, 
