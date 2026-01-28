@@ -3,7 +3,7 @@
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS, calculateATRP, calculateRange, 
-  calculateAverage, calculateMinClose, calculateSTDEV, 
+  calculateAverage, calculateSTDEV, 
   calculateMFI, calculateRSI, calculateADX, calculateDivergence
 } = require('../stockAnalysis');
 
@@ -188,7 +188,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         const latestCandle = historyData[n - 1];
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0; currentRange = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
-        let minClose = 0;
+        let maClose = 0;
         let currentMFI = 0, currentRSI = 0, currentADX = 0;
         //let signalTrend = 0;
         
@@ -216,7 +216,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
             // --- Indikator Lainnya ---
-            minClose = calculateMinClose(historyData.slice(0, -1), 3);
+            const allCloses = historyData.map(d => d.close);
+            maClose = calculateMA(allCloses, 20);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
             currentLRS = calculateLRS(historyData, PERIOD);
             currentATRP = calculateATRP(historyData, 14);
@@ -247,7 +248,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             lrs: Number(currentLRS.toFixed(2)),
             currentATRP: Number(currentATRP.toFixed(2)),
             currentRange: Number(currentRange.toFixed(2)),
-            minClose: Number(minClose.toFixed(2)),
+            maClose: Number(maClose.toFixed(2)),
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
             avgNetOBV: Number(avgNetOBV.toFixed(2)),
