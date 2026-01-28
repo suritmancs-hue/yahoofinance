@@ -229,12 +229,6 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const ma3 = calculateMA(allVolumes, 3);
             const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
-
-            // Hitung array ADX secara efisien untuk seluruh historyData
-            const allADXValues = historyData.map((_, idx) => {
-                if (idx < 14) return 50; // Periode awal netral
-                return calculateADX(historyData.slice(0, idx + 1), 14);
-            });
             
             currentMFI = calculateMFI(historyData, 14);
             currentRSI = calculateRSI(historyData, 14);
@@ -247,17 +241,17 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         return {
             status: "Sukses", ticker,
             lastData: latestCandle,
-            volSpikeRatio: Number(volSpikeRatio.toFixed(4)),
-            avgVol: Number(avgVol.toFixed(4)),
-            volatilityRatio: Number(volatilityRatio.toFixed(4)),
-            lrs: Number(currentLRS.toFixed(4)),
-            currentATRP: Number(currentATRP.toFixed(4)),
-            currentRange: Number(currentRange.toFixed(4)),
+            volSpikeRatio: Number(volSpikeRatio.toFixed(2)),
+            avgVol: Number(avgVol.toFixed(2)),
+            volatilityRatio: Number(volatilityRatio.toFixed(2)),
+            lrs: Number(currentLRS.toFixed(2)),
+            currentATRP: Number(currentATRP.toFixed(2)),
+            currentRange: Number(currentRange.toFixed(2)),
             minClose: Number(minClose.toFixed(2)),
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
-            avgNetOBV: Number(avgNetOBV.toFixed(4)),
-            strengthNetOBV: Number(strengthNetOBV.toFixed(4)),
+            avgNetOBV: Number(avgNetOBV.toFixed(2)),
+            strengthNetOBV: Number(strengthNetOBV.toFixed(2)),
             currentMFI: Number(currentMFI.toFixed(2)),
             currentRSI: Number(currentRSI.toFixed(2)),
             currentADX: Number(currentADX.toFixed(2))
