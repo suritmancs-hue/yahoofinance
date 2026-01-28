@@ -25,20 +25,39 @@ function calculateVolatilityRatio(historicalDataArray, period) {
   return (minPrice === 0 || minPrice === Infinity) ? 1 : maxPrice / minPrice;
 }
 
-function calculateLRS(closesArray, period) {
-  if (!Array.isArray(closesArray) || closesArray.length !== period) return 0;
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (let i = 0; i < period; i++) {
-    const x = i + 1;
-    const y = Number(closesArray[i]);
-    if (!isFinite(y)) return 0;
-    sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x;
-  }
-  const denom = (period * sumX2) - (sumX * sumX);
-  if (denom === 0) return 0;
-  const slope = ((period * sumXY) - (sumX * sumY)) / denom;
-  const avg = sumY / period;
-  return avg === 0 ? 0 : (slope / avg) * 100;
+/**
+ * Menghitung Linear Regression Slope (LRS)
+ * Bisa menerima array of objects (OHLC) atau array of numbers (closes)
+ */
+function calculateLRS(dataArray, period) {
+  if (!Array.isArray(dataArray) || dataArray.length < period) return 0;
+
+  // Cek apakah input adalah array of objects (seperti historyData) atau array of numbers
+  const closes = typeof dataArray[0] === 'object' 
+    ? dataArray.map(d => d.close).slice(-period) 
+    : dataArray.slice(-period);
+
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  
+  for (let i = 0; i < period; i++) {
+    const x = i + 1;
+    const y = Number(closes[i]);
+    
+    if (isNaN(y) || !isFinite(y)) return 0;
+    
+    sumX += x; 
+    sumY += y; 
+    sumXY += x * y; 
+    sumX2 += x * x;
+  }
+
+  const denom = (period * sumX2) - (sumX * sumX);
+  if (denom === 0) return 0;
+
+  const slope = ((period * sumXY) - (sumX * sumY)) / denom;
+  const avg = sumY / period;
+
+  return avg === 0 ? 0 : (slope / avg) * 100;
 }
 
 /**
