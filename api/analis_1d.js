@@ -219,7 +219,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const allCloses = historyData.map(d => d.close);
             maClose = calculateMA(allCloses, 20);
             volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
-            currentLRS = calculateLRS(historyData, PERIOD);
+            currentLRS = calculateLRS(historyData, 14);
             currentATRP = calculateATRP(historyData, 14);
             currentRange = calculateRange(historyData, 14);
 
