@@ -186,7 +186,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         //console.log(`normNetOBV : ${normNetOBV}`);
 
         const latestCandle = historyData[n - 1];
-        let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0; currentRange = 0;
+        let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0; currentRange = 0; rangeRasio = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maClose = 0;
         let currentMFI = 0, currentRSI = 0, currentADX = 0;
@@ -218,10 +218,16 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             // --- Indikator Lainnya ---
             const allCloses = historyData.map(d => d.close);
             maClose = calculateMA(allCloses, 20);
-            volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
+            //volatilityRatio = calculateVolatilityRatio(historyData.slice(0, -OFFSET), PERIOD);
             currentLRS = calculateLRS(historyData, 14);
             currentATRP = calculateATRP(historyData, 14);
             currentRange = calculateRange(historyData, 14);
+
+            const allHighs = historyData.map(d => d.high);
+            const allLowes = historyData.map(d => d.low);
+            const range5 = (calculateMA(allHighs.slice(0, -1), 5)) - (calculateMA(allLowes.slice(0, -1), 5));
+            const range15 = (calculateMA(allHighs.slice(0, -6), 15)) - (calculateMA(allLowes.slice(0, -6), 15));
+            rangeRasio = range5 / range15;
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
@@ -244,10 +250,10 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             lastData: latestCandle,
             volSpikeRatio: Number(volSpikeRatio.toFixed(2)),
             avgVol: Number(avgVol.toFixed(2)),
-            volatilityRatio: Number(volatilityRatio.toFixed(2)),
             lrs: Number(currentLRS.toFixed(2)),
             currentATRP: Number(currentATRP.toFixed(2)),
             currentRange: Number(currentRange.toFixed(2)),
+            rangeRasio: Number(rangeRasio.toFixed(2)),
             maClose: Number(maClose.toFixed(2)),
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
