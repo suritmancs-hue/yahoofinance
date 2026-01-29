@@ -1,5 +1,5 @@
 /**
- * analis_1D.js
+ * analis_1d.js
  */
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS, calculateATRP, calculateRange, 
