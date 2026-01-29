@@ -225,16 +225,16 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             const allHighs = historyData.map(d => d.high);
             const allLowes = historyData.map(d => d.low);
-            if (allHighs.length >= 21) { // 15 + 6 = 21
-                const maHigh5 = calculateMA(allHighs.slice(0, -1), 5);
-                const maLow5  = calculateMA(allLowes.slice(0, -1), 5);
-                const range5  = maHigh5 - maLow5;
+            if (allHighs.length >= 23) { // 15 + 8 = 23
+                const maHigh7 = calculateMA(allHighs.slice(0, -1), 7);
+                const maLow7  = calculateMA(allLowes.slice(0, -1), 7);
+                const range7  = maHigh7 - maLow7;
             
-                const maHigh15 = calculateMA(allHighs.slice(0, -6), 15);
-                const maLow15  = calculateMA(allLowes.slice(0, -6), 15);
+                const maHigh15 = calculateMA(allHighs.slice(0, -8), 15);
+                const maLow15  = calculateMA(allLowes.slice(0, -8), 15);
                 const range15  = maHigh15 - maLow15;
-
-                rangeRasio = (range15 !== 0) ? (range5 / range15) : 0;
+              
+                rangeRasio = (range15 !== 0) ? (range7 / range15) : 0;
             } else {
                 rangeRasio = 1; // Atau default value lainnya
             }
