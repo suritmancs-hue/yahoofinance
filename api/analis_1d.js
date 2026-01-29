@@ -271,7 +271,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             lrs: Number(currentLRS.toFixed(2)),
             currentATRP: Number(currentATRP.toFixed(2)),
             currentRange: Number(currentRange.toFixed(2)),
-            rangeRasio: Number(rangeRasio.toFixed(2)),
+            rangeRasio: Number(rangeRasio.toFixed(4)),
             maClose: Number(maClose.toFixed(2)),
             currentDeltaOBV: Number(currentDeltaOBV_val.toFixed(2)),
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
