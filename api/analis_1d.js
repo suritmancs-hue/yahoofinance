@@ -186,7 +186,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         //console.log(`normNetOBV : ${normNetOBV}`);
 
         const latestCandle = historyData[n - 1];
-        let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0; currentRange = 0; rangeRasio = 0;
+        let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0, currentRange = 0, rangeRasio = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maClose = 0;
         let currentMFI = 0, currentRSI = 0, currentADX = 0;
@@ -225,9 +225,19 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             const allHighs = historyData.map(d => d.high);
             const allLowes = historyData.map(d => d.low);
-            const range5 = (calculateMA(allHighs.slice(0, -1), 5)) - (calculateMA(allLowes.slice(0, -1), 5));
-            const range15 = (calculateMA(allHighs.slice(0, -6), 15)) - (calculateMA(allLowes.slice(0, -6), 15));
-            rangeRasio = range5 / range15;
+            if (allHighs.length >= 21) { // 15 + 6 = 21
+                const maHigh5 = calculateMA(allHighs.slice(0, -1), 5);
+                const maLow5  = calculateMA(allLowes.slice(0, -1), 5);
+                const range5  = maHigh5 - maLow5;
+            
+                const maHigh15 = calculateMA(allHighs.slice(0, -6), 15);
+                const maLow15  = calculateMA(allLowes.slice(0, -6), 15);
+                const range15  = maHigh15 - maLow15;
+
+                rangeRasio = (range15 !== 0) ? (range5 / range15) : 0;
+            } else {
+                rangeRasio = 1; // Atau default value lainnya
+            }
 
             const allVolumes = historyData.map(d => d.volume);
             const maVolume = calculateMA(allVolumes.slice(0, -1), PERIOD);
