@@ -226,17 +226,25 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const allHighs = historyData.map(d => d.high);
             const allLowes = historyData.map(d => d.low);
             if (allHighs.length >= 23) { // 15 + 8 = 23
-                const maHigh7 = calculateMA(allHighs.slice(0, -1), 7);
-                const maLow7  = calculateMA(allLowes.slice(0, -1), 7);
-                const range7  = maHigh7 - maLow7;
-            
-                const maHigh15 = calculateMA(allHighs.slice(0, -8), 15);
-                const maLow15  = calculateMA(allLowes.slice(0, -8), 15);
-                const range15  = maHigh15 - maLow15;
+                const maHigh7_a = calculateMA(allHighs, 7);
+                const maLow7_a  = calculateMA(allLowes, 7);
+                const range7_a  = maHigh7_a - maLow7_a;
+                const maHigh15_a = calculateMA(allHighs.slice(0, -7), 15);
+                const maLow15_a  = calculateMA(allLowes.slice(0, -7), 15);
+                const range15_a  = maHigh15_a - maLow15_a;
+                
+                const maHigh7_b = calculateMA(allHighs.slice(0, -1), 7);
+                const maLow7_b  = calculateMA(allLowes.slice(0, -1), 7);
+                const range7_b  = maHigh7_b - maLow7_b;
+                const maHigh15_b = calculateMA(allHighs.slice(0, -8), 15);
+                const maLow15_b  = calculateMA(allLowes.slice(0, -8), 15);
+                const range15_b  = maHigh15_b - maLow15_b;
               
-                rangeRasio = (range15 !== 0) ? (range7 / range15) : 0;
+                const rra = (range15_a !== 0) ? (range7_a / range15_a) : 0;
+                const rrb = (range15_b !== 0) ? (range7_b / range15_b) : 0;
+                rangeRasio = Math.min(rra, rrb);
             } else {
-                rangeRasio = 1; // Atau default value lainnya
+                rangeRasio = 1; // default value
             }
 
             const allVolumes = historyData.map(d => d.volume);
