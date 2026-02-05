@@ -52,14 +52,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         }
         const currentCandle = mainCandles[n - 1];
         const prevCandle = mainCandles[n - 2];
-        //const prevCandle2 = mainCandles[n - 3];
-        //const prevCandle3 = mainCandles[n - 4];
+        const prevCandle2 = mainCandles[n - 3];
+        const prevCandle3 = mainCandles[n - 4];
 
-        const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle.close;
-                  //(currentCandle.close > currentCandle.open) > 1.0125 && (currentCandle.high / currentCandle.low) > 1.015 &&
-                  //(currentCandle.close / currentCandle.open) > (prevCandle1.close / prevCandle1.open) &&
-                  //(currentCandle.close / currentCandle.open) > (prevCandle2.close / prevCandle2.open) &&
-                  //(currentCandle.close / currentCandle.open) > (prevCandle3.close / prevCandle3.open) &&
+        const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle.close &&
+                  currentCandle.volume > prevCandle.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
+                  currentCandle.volume > 500000;
         if (!isBullish) {
             console.log(`Ticker: ${ticker}, TS Raw: ${currentCandle.timestamp}`);
             return {
@@ -195,18 +193,40 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         });
 
         const latestCandle = historyData[n - 1];
-        const prevCandle1 = historyData[n - 2];
-        const prevCandle2 = historyData[n - 3];
-        const prevCandle3 = historyData[n - 4];
 
-        const currentMFI = calculateMFI(historyData, 14);
-        const currentRSI = calculateRSI(historyData, 14);
-        const currentADX = calculateADX(historyData, 14);
+        // --- Kalkulasi Array Data Terakhir ---
+        const arrayMFI = [];
+        const arrayRSI = [];
+        const arrayADX = [];
+        const numToCalculate = 11;
+
+        // Kita looping sampai candle saat ini (n-1)
+        for (let i = n - numToCalculate; i < n; i++) {
+            // Pastikan data yang di-slice cukup untuk kalkulasi (minimal index 0)
+            const historicalSlice = historyData.slice(0, i + 1);
+            
+            if (historicalSlice.length >= 14) {
+                arrayMFI.push(Number(calculateMFI(historicalSlice, 14).toFixed(2)));
+                arrayRSI.push(Number(calculateRSI(historicalSlice, 14).toFixed(2)));
+                arrayADX.push(Number(calculateADX(historicalSlice, 14).toFixed(2)));
+            } else {
+                // Jika data belum cukup, masukkan null atau 0
+                arrayMFI.push(null);
+                arrayRSI.push(null);
+                arrayADX.push(null);
+            }
+        }
+
+        const maxMFI = Math.max(...arrayMFI.slice(0, -1).filter(v => v !== null), -Infinity);
+        const maxRSI = Math.max(...arrayRSI.slice(0, -1).filter(v => v !== null), -Infinity);
+          
+        // Ambil nilai terbaru untuk pengecekan momentum (nilai terakhir dari array)
+        const currentMFI = arrayMFI[arrayMFI.length - 1];
+        const currentRSI = arrayRSI[arrayRSI.length - 1];
+        const currentADX = arrayADX[arrayADX.length - 1];
       
         const isMomentum = 
-              latestCandle.volume > 500000 &&
-              latestCandle.volume > prevCandle1.volume && latestCandle.volume > prevCandle2.volume && latestCandle.volume > prevCandle3.volume &&
-              currentMFI > 65 && currentRSI < 100 && currentADX > 55;
+              currentMFI !== null && currentMFI > 50 && currentRSI < 85 && currentMFI > maxMFI && currentRSI > maxRSI;
         if (!isMomentum) {
             return {
                 status: "Filtered",
