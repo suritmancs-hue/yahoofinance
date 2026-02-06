@@ -57,7 +57,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
 
         const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle.close &&
                   currentCandle.volume > prevCandle.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
-                  currentCandle.volume > 500000;
+                  currentCandle.volume > 100000;
         if (!isBullish) {
             console.log(`Ticker: ${ticker}, TS Raw: ${currentCandle.timestamp}`);
             return {
@@ -226,7 +226,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const currentADX = arrayADX[arrayADX.length - 1];
       
         const isMomentum = 
-              currentMFI !== null && currentMFI > 50 && currentRSI < 85 && currentMFI > maxMFI && currentRSI > maxRSI;
+              currentMFI !== null && currentMFI > 50 && currentRSI < 85 && currentRSI > maxRSI;
         if (!isMomentum) {
             return {
                 status: "Filtered",
