@@ -18,7 +18,7 @@ function convertTimestamp(unixSeconds) {
 async function processSingleTicker(ticker, interval, range, backday = 0) {
     if (!ticker) return { ticker, status: "Error", message: "No Ticker" };
 
-    let subInterval = '5m';
+    let subInterval = '2m';
     let mainRange = range || '10d';
     let subRange = mainRange;
 
@@ -51,12 +51,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             return { ticker, status: "Filtered" };
         }
         const currentCandle = mainCandles[n - 1];
-        const prevCandle = mainCandles[n - 2];
+        const prevCandle1 = mainCandles[n - 2];
         const prevCandle2 = mainCandles[n - 3];
         const prevCandle3 = mainCandles[n - 4];
 
-        const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle.close &&
-                  currentCandle.volume > prevCandle.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
+        const isBullish = currentCandle.close >= currentCandle.open && currentCandle.close >= prevCandle1.close &&
+                  currentCandle.volume > prevCandle1.volume && currentCandle.volume > prevCandle2.volume && currentCandle.volume > prevCandle3.volume &&
                   currentCandle.volume > 100000;
         if (!isBullish) {
             console.log(`Ticker: ${ticker}, TS Raw: ${currentCandle.timestamp}`);
@@ -226,7 +226,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const currentADX = arrayADX[arrayADX.length - 1];
       
         const isMomentum = 
-              currentMFI !== null && currentMFI > 50 && currentRSI < 85 && currentRSI > maxRSI;
+              currentMFI !== null && currentMFI > 50 && currentMFI < 87.5 && currentRSI < 80 && currentRSI >= maxRSI && currentADX > 30;
         if (!isMomentum) {
             return {
                 status: "Filtered",
