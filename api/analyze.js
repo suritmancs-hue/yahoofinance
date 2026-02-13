@@ -160,7 +160,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                         prevClose = (i > 0) ? mainCandles[i - 1].close : subOpen;
                     }
             
-                    if (subClose > prevClose) {
+                    if (subClose >= prevClose) {
                         currentDelta = syncedVol;
                     } else if (subClose < prevClose) {
                         currentDelta = -syncedVol;
@@ -252,7 +252,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maxClose = 0, ocfilter = 0;
         
-        const PERIOD = (interval === "15m") ? 35 : 25;
+        const PERIOD = 35;
         const MIN_REQUIRED_DATA = PERIOD + OFFSET + 1;
 
         if (n > MIN_REQUIRED_DATA) {
