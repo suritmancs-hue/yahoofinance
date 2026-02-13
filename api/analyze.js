@@ -140,13 +140,12 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                 const subClose = sub.close;
                 const syncedVol = (sub.volume || 0) * scaleFactor;
                 const range = subHigh - subLow;
+                const effectiveRange = Math.max(1, range);
             
                 let currentDelta = 0;
 
                 if (subClose !== subOpen) {
-                    const effectiveRange = Math.max(1, range);
                     const intensity = Math.abs(subClose - subOpen) / effectiveRange;
-            
                     if (subClose > subOpen) {
                         currentDelta = syncedVol * intensity;
                     } else {
@@ -161,7 +160,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
                         prevClose = (i > 0) ? mainCandles[i - 1].close : subOpen;
                     }
             
-                    if (subClose >= prevClose) {
+                    if (subClose > prevClose) {
                         currentDelta = syncedVol;
                     } else if (subClose < prevClose) {
                         currentDelta = -syncedVol;
