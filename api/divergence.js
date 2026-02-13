@@ -230,6 +230,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const prevADX = historyData[n - 2].adx;
 
             const isDivergence =
+                        latestCandle.volume > 500000 &&
                         currentRSI < 50 && (currentMFI > 50 || currentADX > 50) && currentRSI > prevRSI &&
                         currentDeltaOBV_val > 0 && prevDeltaOBV_val > 0 && signalTrend === "BULLISH DIVERGENCE";
 
