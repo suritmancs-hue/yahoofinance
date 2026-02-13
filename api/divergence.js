@@ -220,7 +220,9 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
             const arrayRSI = historyData.map(d => d.rsi);
-            const signalTrend = calculateDivergence(historyData.slice(0,-1), arrayRSI.slice(0,-1), 25);
+            const signalTrend0 = calculateDivergence(historyData, arrayRSI, 25);
+            const signalTrend1 = calculateDivergence(historyData.slice(0,-1), arrayRSI.slice(0,-1), 25);
+            const signalTrend2 = calculateDivergence(historyData.slice(0,-2), arrayRSI.slice(0,-2), 25);
           
             const currentRSI = historyData[n - 1].rsi;
             const prevRSI = historyData[n - 2].rsi;
@@ -231,8 +233,9 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             const isDivergence =
                         latestCandle.volume > 500000 &&
-                        currentRSI < 50 && (currentMFI > 50 || currentADX > 50) && currentRSI > prevRSI &&
-                        currentDeltaOBV_val > 0 && prevDeltaOBV_val > 0 && signalTrend === "BULLISH DIVERGENCE";
+                        (currentRSI <50 || prevRSI < 50) && (currentMFI > 50 || currentADX > 50) &&
+                        currentDeltaOBV_val > 0 && prevDeltaOBV_val > 0 &&
+                        (signalTrend1 !== "BULLISH DIVERGENCE" || signalTrend2 !== "BULLISH DIVERGENCE") && signalTrend0 === "BULLISH DIVERGENCE";
 
             if (isDivergence) divergence = 'Bullish Divergence';
         }
