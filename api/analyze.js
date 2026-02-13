@@ -103,11 +103,11 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             const lastMainTs = lastMainCandle.timestamp;
 
                 /**
-                 * Logika 15m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
-                 * Jadi kita buang semua subCandles yang >= 10.15.
+                 * Logika 30m: Batas akhir adalah Menit ke-10 (untuk main candle pukul 10.00).
+                 * Jadi kita buang semua subCandles yang >= 10.30.
                  */
-                const limit15m = lastMainTs + (15 * 60); 
-                subCandles = subCandles.filter(s => s.timestamp < limit15m);
+                const limit30m = lastMainTs + (30 * 60); 
+                subCandles = subCandles.filter(s => s.timestamp < limit30m);
         }
 
         // --- LANJUT KE PERHITUNGAN
