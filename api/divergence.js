@@ -233,9 +233,10 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             const isDivergence =
                         latestCandle.volume > 500000 &&
-                        (currentRSI <50 || prevRSI < 50) && (currentMFI > 50 || currentADX > 50) &&
+                        (currentRSI <50 || prevRSI < 50) && (currentMFI > 40 || currentADX > 40) &&
                         currentDeltaOBV_val > 0 && prevDeltaOBV_val > 0 &&
-                        (signalTrend1 !== "BULLISH DIVERGENCE" || signalTrend2 !== "BULLISH DIVERGENCE") && signalTrend0 === "BULLISH DIVERGENCE";
+                        (signalTrend1 === "BULLISH DIVERGENCE" || signalTrend2 === "BULLISH DIVERGENCE") &&
+                        signalTrend0 !== "BULLISH DIVERGENCE" && signalTrend0 !== "BEARISH CONTINU";
 
             if (isDivergence) divergence = 'Bullish Divergence';
         }
