@@ -204,7 +204,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
             // Pastikan data yang di-slice cukup untuk kalkulasi (minimal index 0)
             const historicalSlice = historyData.slice(0, i + 1);
             
-            if (historicalSlice.length >= 14) {
+            if (historicalSlice.length >= 11) {
                 arrayMFI.push(Number(calculateMFI(historicalSlice, 14).toFixed(2)));
                 arrayRSI.push(Number(calculateRSI(historicalSlice, 14).toFixed(2)));
                 arrayADX.push(Number(calculateADX(historicalSlice, 14).toFixed(2)));
