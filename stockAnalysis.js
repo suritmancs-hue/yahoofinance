@@ -192,35 +192,44 @@ function calculateMFI(candles, period = 14) {
     return 100 - (100 / (1 + mfr));
 }
 
-function calculateRSI(candles, period) {
-    if (candles.length <= period) return 50; // Return neutral jika data tidak cukup
+function calculateRSI(candles, period = 14) {
+    // RMA membutuhkan data historis yang cukup untuk akurasi (idealnya > 250 candles)
+    if (candles.length <= period) return 50;
 
-    let totalGain = 0;
-    let totalLoss = 0;
+    let avgGain = 0;
+    let avgLoss = 0;
 
-    // Ambil subset data sesuai periode dari belakang
-    const startIdx = candles.length - period;
-
-    for (let i = startIdx; i < candles.length; i++) {
-        const current = candles[i];
-        const prev = candles[i - 1];
-
-        const change = current.close - prev.close;
-
+    // 1. HITUNG INITIAL SMA (Sebagai pondasi dasar RMA)
+    // Kita mulai dari index 1 sampai index 'period'
+    for (let i = 1; i <= period; i++) {
+        const change = candles[i].close - candles[i - 1].close;
         if (change > 0) {
-            totalGain += change;
-        } else if (change < 0) {
-            totalLoss += Math.abs(change);
+            avgGain += change;
+        } else {
+            avgLoss += Math.abs(change);
         }
     }
 
-    // Jika tidak ada penurunan sama sekali dalam periode tersebut
-    if (totalLoss === 0) return 100;
-    
-    // Menghitung Relative Strength (RS)
-    const rs = totalGain / totalLoss;
+    avgGain /= period;
+    avgLoss /= period;
 
-    // Menghitung RSI
+    // 2. HITUNG RMA (Wilder's Smoothing)
+    // Melanjutkan dari period + 1 sampai data terakhir
+    for (let i = period + 1; i < candles.length; i++) {
+        const change = candles[i].close - candles[i - 1].close;
+        const currentGain = change > 0 ? change : 0;
+        const currentLoss = change < 0 ? Math.abs(change) : 0;
+
+        // Rumus inti RMA: ((Prev_Avg * (n-1)) + Current) / n
+        avgGain = ((avgGain * (period - 1)) + currentGain) / period;
+        avgLoss = ((avgLoss * (period - 1)) + currentLoss) / period;
+    }
+
+    // 3. KALKULASI AKHIR
+    if (avgLoss === 0) return 100;
+    if (avgGain === 0) return 0;
+
+    const rs = avgGain / avgLoss;
     return 100 - (100 / (1 + rs));
 }
 
