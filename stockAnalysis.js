@@ -164,15 +164,16 @@ function calculateSTDEV(dataArray, period) {
 }
 
 function calculateMFI(candles, period = 14) {
-    if (candles.length <= period) return 50; // Return neutral jika data kurang
+    // RMA membutuhkan data historis yang cukup (pemanasan)
+    // Minimal period + 1 untuk mendapatkan satu nilai SMA awal
+    if (candles.length <= period) return 50;
 
-    let posMF = 0;
-    let negMF = 0;
+    let avgPosMF = 0;
+    let avgNegMF = 0;
 
-    // Ambil subset data sesuai periode dari belakang
-    const startIdx = candles.length - period;
-    
-    for (let i = startIdx; i < candles.length; i++) {
+    // 1. TAHAP AWAL: Hitung SMA (Simple Moving Average)
+    // Digunakan sebagai pondasi dasar untuk perhitungan RMA selanjutnya
+    for (let i = 1; i <= period; i++) {
         const current = candles[i];
         const prev = candles[i - 1];
 
@@ -181,14 +182,38 @@ function calculateMFI(candles, period = 14) {
         const rmf = tpCurrent * current.volume;
 
         if (tpCurrent > tpPrev) {
-            posMF += rmf;
+            avgPosMF += rmf;
         } else if (tpCurrent < tpPrev) {
-            negMF += rmf;
+            avgNegMF += rmf;
         }
     }
+    
+    // Rata-rata awal (Initial SMA)
+    avgPosMF /= period;
+    avgNegMF /= period;
 
-    if (negMF === 0) return 100;
-    const mfr = posMF / negMF;
+    // 2. TAHAP LANJUTAN: Hitung RMA (Wilder's Smoothing)
+    // Melanjutkan dari index setelah periode sampai data terakhir
+    for (let i = period + 1; i < candles.length; i++) {
+        const current = candles[i];
+        const prev = candles[i - 1];
+
+        const tpCurrent = (current.high + current.low + current.close) / 3;
+        const tpPrev = (prev.high + prev.low + prev.close) / 3;
+        const rmf = tpCurrent * current.volume;
+
+        const currentPos = (tpCurrent > tpPrev) ? rmf : 0;
+        const currentNeg = (tpCurrent < tpPrev) ? rmf : 0;
+
+        // Rumus Wilder's Smoothing: ((Prev * (n-1)) + Current) / n
+        avgPosMF = ((avgPosMF * (period - 1)) + currentPos) / period;
+        avgNegMF = ((avgNegMF * (period - 1)) + currentNeg) / period;
+    }
+
+    // 3. KALKULASI AKHIR MFI
+    if (avgNegMF === 0) return 100;
+    
+    const mfr = avgPosMF / avgNegMF;
     return 100 - (100 / (1 + mfr));
 }
 
@@ -234,64 +259,81 @@ function calculateRSI(candles, period = 14) {
 }
 
 function calculateADX(candles, period = 14) {
-  // ADX membutuhkan data minimal (2 * period) untuk smoothing yang akurat, 
-  // tapi secara teknis bisa berjalan dengan (period + 1) data.
-  if (!candles || candles.length <= period) return 0;
+  // Untuk ADX yang akurat, disarankan minimal memiliki (period * 2) data
+  if (!candles || candles.length < period * 2) return 0;
 
   let trs = [];
   let plusDMs = [];
   let minusDMs = [];
 
-  // 1. Hitung TR, +DM, dan -DM untuk setiap candle
+  // 1. Fase Persiapan: Hitung TR, +DM, dan -DM mentah
   for (let i = 1; i < candles.length; i++) {
     const current = candles[i];
     const prev = candles[i - 1];
 
-    // True Range (TR)
     const tr = Math.max(
       current.high - current.low,
       Math.abs(current.high - prev.close),
       Math.abs(current.low - prev.close)
     );
-    trs.push(tr);
-
-    // Directional Movement (+DM dan -DM)
+    
     const upMove = current.high - prev.high;
     const downMove = prev.low - current.low;
 
-    let plusDM = 0;
-    let minusDM = 0;
+    let plusDM = (upMove > downMove && upMove > 0) ? upMove : 0;
+    let minusDM = (downMove > upMove && downMove > 0) ? downMove : 0;
 
-    if (upMove > downMove && upMove > 0) {
-      plusDM = upMove;
-    }
-    if (downMove > upMove && downMove > 0) {
-      minusDM = downMove;
-    }
-
+    trs.push(tr);
     plusDMs.push(plusDM);
     minusDMs.push(minusDM);
   }
 
-  // 2. Ambil subset data sesuai periode dari belakang
-  const relevantTR = trs.slice(-period);
-  const relevantPlusDM = plusDMs.slice(-period);
-  const relevantMinusDM = minusDMs.slice(-period);
+  // 2. Inisialisasi Smoothing Pertama (Initial SMA)
+  let smoothTR = 0;
+  let smoothPlusDM = 0;
+  let smoothMinusDM = 0;
 
-  const sumTR = relevantTR.reduce((a, b) => a + b, 0);
-  const sumPlusDM = relevantPlusDM.reduce((a, b) => a + b, 0);
-  const sumMinusDM = relevantMinusDM.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < period; i++) {
+    smoothTR += trs[i];
+    smoothPlusDM += plusDMs[i];
+    smoothMinusDM += minusDMs[i];
+  }
 
-  if (sumTR === 0) return 0;
+  // Simpan nilai DX pertama
+  let dxValues = [];
+  
+  const initialPlusDI = (smoothPlusDM / smoothTR) * 100;
+  const initialMinusDI = (smoothMinusDM / smoothTR) * 100;
+  dxValues.push((Math.abs(initialPlusDI - initialMinusDI) / (initialPlusDI + initialMinusDI)) * 100);
 
-  // 3. Hitung +DI dan -DI
-  const plusDI = (sumPlusDM / sumTR) * 100;
-  const minusDI = (sumMinusDM / sumTR) * 100;
+  // 3. Iterasi RMA untuk TR, DM, dan DX
+  // Gunakan rumus Wilder: (Prev_Smooth - (Prev_Smooth / Period) + Current)
+  for (let i = period; i < trs.length; i++) {
+    smoothTR = smoothTR - (smoothTR / period) + trs[i];
+    smoothPlusDM = smoothPlusDM - (smoothPlusDM / period) + plusDMs[i];
+    smoothMinusDM = smoothMinusDM - (smoothMinusDM / period) + minusDMs[i];
 
-  // 4. Hitung DX (Directional Index)
-  const dx = (Math.abs(plusDI - minusDI) / (plusDI + minusDI)) * 100;
+    const plusDI = (smoothPlusDM / smoothTR) * 100;
+    const minusDI = (smoothMinusDM / smoothTR) * 100;
+    const dx = (Math.abs(plusDI - minusDI) / (plusDI + minusDI)) * 100;
+    
+    dxValues.push(dx);
+  }
 
-  return dx;
+  // 4. Hitung ADX Akhir (RMA dari nilai-nilai DX)
+  // Inisialisasi ADX dengan rata-rata periode pertama dari DX
+  let adx = 0;
+  for (let i = 0; i < period; i++) {
+    adx += dxValues[i];
+  }
+  adx /= period;
+
+  // Smoothing ADX untuk sisa data DX
+  for (let i = period; i < dxValues.length; i++) {
+    adx = ((adx * (period - 1)) + dxValues[i]) / period;
+  }
+
+  return adx;
 }
 
 /**
