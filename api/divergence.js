@@ -253,7 +253,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                         //signalTrend0 !== "BULLISH DIVERGENCE" &&
                         signalTrend0 !== "BEARISH CONTINU";
             const isHidden =
-                        latestCandle.volume > 500000 &&
+                        latestCandle.volume > 1000000 &&
                         (currentRSI <65 && prevRSI < 65) && currentMFI > 50 && currentADX < 50 &&
                         currentDeltaOBV_val > 0 && avgNetOBV > 1.5 && strengthNetOBV > 1 &&
                         avgLRS > -1 &&
