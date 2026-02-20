@@ -225,7 +225,7 @@ async function processSingleTicker(ticker, interval, range, backday = 0) {
         const currentADX = arrayADX[arrayADX.length - 1];
       
         const isMomentum = 
-              currentMFI !== null && currentMFI > 50 && currentRSI < 80 && currentRSI >= maxRSI && currentADX > 30;
+              currentMFI !== null && currentMFI > 50 && currentRSI < 80 && currentRSI >= maxRSI && currentADX < 50;
         if (!isMomentum) {
             return {
                 status: "Filtered",
