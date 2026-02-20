@@ -193,6 +193,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
         const latestCandle = historyData[n - 1];
         let currentDeltaOBV_val = 0, prevDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
+        let avgLRS = 0;
         let divergence = '-';
         
         const PERIOD = 25;
@@ -219,6 +220,18 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             avgNetOBV = stdev !== 0 ? (currentNetOBV_val - mean) / stdev : 0;
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
+            const arrayLRS = [];
+            const lrsEnd = n - 5;
+            const avgCount = Math.floor((PERIOD + 1) / 2);
+            for (let t = lrsEnd - 1; t >= lrsEnd - avgCount; t--) {
+                const windowCloses = historyData.slice(t - PERIOD + 1, t + 1).map(d => d.close);
+                if (windowCloses.length === PERIOD) {
+                    const lrsValue = calculateLRS(windowCloses, PERIOD);
+                    arrayLRS.push(Math.abs(lrsValue));
+                }
+            }
+            avgLRS = arrayLRS.length > 0 ? calculateAverage(arrayLRS) : 0;
+
             const arrayRSI = historyData.map(d => d.rsi);
             const signalTrend0 = calculateDivergence(historyData, arrayRSI, 25);
             const signalTrend1 = calculateDivergence(historyData.slice(0,-1), arrayRSI.slice(0,-1), 25);
@@ -233,12 +246,26 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             const isDivergence =
                         latestCandle.volume > 500000 &&
-                        (currentRSI <50 || prevRSI < 50) && (currentMFI > 40 || currentADX > 40) &&
-                        currentDeltaOBV_val > 0 && prevDeltaOBV_val > 0 &&
+                        (currentRSI <50 && prevRSI < 50) && currentMFI > 40 && currentADX < 40 &&
+                        currentDeltaOBV_val > 0 && avgNetOBV > 1.5 && strengthNetOBV > 1 &&
+                        avgLRS < 0 &&
                         (signalTrend1 === "BULLISH DIVERGENCE" || signalTrend2 === "BULLISH DIVERGENCE") &&
-                        signalTrend0 !== "BULLISH DIVERGENCE" && signalTrend0 !== "BEARISH CONTINU";
+                        //signalTrend0 !== "BULLISH DIVERGENCE" &&
+                        signalTrend0 !== "BEARISH CONTINU";
+            const isHidden =
+                        latestCandle.volume > 500000 &&
+                        (currentRSI <65 && prevRSI < 65) && currentMFI > 50 && currentADX < 50 &&
+                        currentDeltaOBV_val > 0 && avgNetOBV > 1.5 && strengthNetOBV > 1 &&
+                        avgLRS > -1 &&
+                        (signalTrend1 === "HIDDEN BULLISH" || signalTrend2 === "HIDDEN BULLISH") &&
+                        //signalTrend0 !== "HIDDEN BULLISH" &&
+                        signalTrend0 !== "BEARISH CONTINU";
 
-            if (isDivergence) divergence = 'Bullish Divergence';
+            if (isDivergence) {
+              divergence = 'Bullish Divergence';
+            } else if (isHidden) {
+              divergence = 'Hidden Bullish';
+            }
         }
 
         return {
