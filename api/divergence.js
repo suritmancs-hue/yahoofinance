@@ -263,7 +263,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                         latestCandle.volume > 1000000 &&
                         latestCandle.close / prevMA25 < 1.1 &&
                         (currentRSI <65 && prevRSI < 65) && currentMFI < 65 && currentADX < 50 &&
-                        currentDeltaOBV_val > 0 && avgNetOBV > 1.5 && strengthNetOBV > 1 && currentNetOBV_val > 15000000 &&
+                        currentDeltaOBV_val > 0 && avgNetOBV > 1.25 && strengthNetOBV > 1 && currentNetOBV_val > 15000000 &&
                         avgLRS > 0 &&
                         (signalTrend1 === "HIDDEN BULLISH" || signalTrend2 === "HIDDEN BULLISH") &&
                         //signalTrend0 !== "HIDDEN BULLISH" &&
