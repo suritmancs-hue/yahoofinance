@@ -254,7 +254,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                         latestCandle.volume > 500000 &&
                         (currentRSI <50 && prevRSI < 50) && currentMFI > 35 && currentADX < 40 &&
                         currentDeltaOBV_val > 0 && avgNetOBV > 1 && currentNetOBV_val > 15000000 &&
-                        avgLRS < -0.5 &&
+                        avgLRS < 0 &&
                         (signalTrend1 === "BULLISH DIVERGENCE" || signalTrend2 === "BULLISH DIVERGENCE") &&
                         //signalTrend0 !== "BULLISH DIVERGENCE" &&
                         signalTrend0 !== "BEARISH CONTINU";
@@ -264,7 +264,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                         latestCandle.close / prevMA25 < 1.1 &&
                         (currentRSI <65 && prevRSI < 65) && currentMFI < 65 && currentADX < 50 &&
                         currentDeltaOBV_val > 0 && avgNetOBV > 1.5 && strengthNetOBV > 1 && currentNetOBV_val > 15000000 &&
-                        avgLRS > -0.5 &&
+                        avgLRS > 0 &&
                         (signalTrend1 === "HIDDEN BULLISH" || signalTrend2 === "HIDDEN BULLISH") &&
                         //signalTrend0 !== "HIDDEN BULLISH" &&
                         signalTrend0 !== "BEARISH CONTINU";
