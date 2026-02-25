@@ -193,7 +193,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
         const latestCandle = historyData[n - 1];
         let currentDeltaOBV_val = 0, prevDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
-        let avgLRS = 0;
+        let avgLRS = 0, prevMA25 = 0;
         let divergence = '-';
         
         const PERIOD = 25;
@@ -221,16 +221,21 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             strengthNetOBV = (maxH - minH) === 0 ? 0 : (currentNetOBV_val - minH) / (maxH - minH);
 
             const arrayLRS = [];
-            const lrsEnd = n - 5;
-            const avgCount = Math.floor((PERIOD + 1) / 2);
+            const lrsEnd = n;
+            const avgCount = 5;
             for (let t = lrsEnd - 1; t >= lrsEnd - avgCount; t--) {
                 const windowCloses = historyData.slice(t - PERIOD + 1, t + 1).map(d => d.close);
                 if (windowCloses.length === PERIOD) {
                     const lrsValue = calculateLRS(windowCloses, PERIOD);
-                    arrayLRS.push(Math.abs(lrsValue));
+                    arrayLRS.push(lrsValue);
                 }
             }
             avgLRS = arrayLRS.length > 0 ? calculateAverage(arrayLRS) : 0;
+            if (historyData.length >= 26) {
+                prevMA25 = calculateAverage(historyData.slice(-26, -1).map(d => d.close));
+            } else {
+                prevMA25 = latestCandle.close; // Fallback agar tidak pembagian dengan nol/NaN
+            }
 
             const arrayRSI = historyData.map(d => d.rsi);
             const signalTrend0 = calculateDivergence(historyData, arrayRSI, 25);
@@ -254,7 +259,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                         signalTrend0 !== "BEARISH CONTINU";
             const isHidden =
                         latestCandle.volume > 1000000 &&
-                        (currentRSI <65 && prevRSI < 65) && currentMFI > 50 && currentADX < 50 &&
+                        latestCandle.close / prevMA25 < 1.1 &&
+                        (currentRSI <65 && prevRSI < 65) && currentMFI < 65 && currentADX < 50 &&
                         currentDeltaOBV_val > 0 && avgNetOBV > 1.5 && strengthNetOBV > 1 &&
                         avgLRS > -1 &&
                         (signalTrend1 === "HIDDEN BULLISH" || signalTrend2 === "HIDDEN BULLISH") &&
