@@ -253,7 +253,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             const isDivergence =
                         latestCandle.close > 85 && latestCandle.close < 2000 &&
-                        latestCandle.volume > 500000 && 1000000 > 1000000 &&
+                        latestCandle.volume > 500000 && preVol10 > 1000000 &&
                         (currentRSI <50 && prevRSI < 50) && currentMFI > 35 && currentADX < 40 &&
                         currentDeltaOBV_val > 0 && avgNetOBV > 1 && currentNetOBV_val > 15000000 &&
                         avgLRS < 0 &&
