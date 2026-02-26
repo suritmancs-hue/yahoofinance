@@ -193,7 +193,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
         const latestCandle = historyData[n - 1];
         let currentDeltaOBV_val = 0, prevDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
-        let avgLRS = 0, prevMA25 = 0;
+        let avgLRS = 0, prevMA25 = 0, preVol10 = 0;
         let divergence = '-';
         
         const PERIOD = 25;
@@ -233,8 +233,10 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             avgLRS = arrayLRS.length > 0 ? calculateAverage(arrayLRS) : 0;
             if (historyData.length >= 26) {
                 prevMA25 = calculateAverage(historyData.slice(-26, -1).map(d => d.close));
+                preVol10 = calculateAverage(historyData.slice(-11, -1).map(d => d.volume));
             } else {
                 prevMA25 = latestCandle.close; // Fallback agar tidak pembagian dengan nol/NaN
+                preVol10 = latestCandle.volume;
             }
 
             const arrayRSI = historyData.map(d => d.rsi);
@@ -250,8 +252,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const prevADX = historyData[n - 2].adx;
 
             const isDivergence =
-                        latestCandle.close > 100 && latestCandle.close < 3000 &&
-                        latestCandle.volume > 500000 &&
+                        latestCandle.close > 85 && latestCandle.close < 2000 &&
+                        latestCandle.volume > 500000 && 1000000 > 1000000 &&
                         (currentRSI <50 && prevRSI < 50) && currentMFI > 35 && currentADX < 40 &&
                         currentDeltaOBV_val > 0 && avgNetOBV > 1 && currentNetOBV_val > 15000000 &&
                         avgLRS < 0 &&
@@ -259,8 +261,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                         //signalTrend0 !== "BULLISH DIVERGENCE" &&
                         signalTrend0 !== "BEARISH CONTINU";
             const isHidden =
-                        latestCandle.close > 100 && latestCandle.close < 3000 &&
-                        latestCandle.volume > 1000000 &&
+                        latestCandle.close > 85 && latestCandle.close < 2000 &&
+                        latestCandle.volume > 1000000 && preVol10 > 1000000 &&
                         latestCandle.close / prevMA25 < 1.1 &&
                         (currentRSI <65 && prevRSI < 65) && currentMFI < 65 && currentADX < 50 &&
                         currentDeltaOBV_val > 0 && avgNetOBV > 1.25 && strengthNetOBV > 1 && currentNetOBV_val > 15000000 &&
