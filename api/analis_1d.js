@@ -260,9 +260,10 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const subIHSG = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`);
             const candleIHSG = await subIHSG.json();
             const r = 3;
-            const arrayRS = calculateRelativeStrength(allCloses, arrayIHSG, ); 
+            const arrayRS = calculateRelativeStrength(allCloses, candleIHSG); 
             currentRS = arrayRS[r - 1];
             prevRS = arrayRS[r - 2];
+            slopeRS = 1;
           
             currentMFI = calculateMFI(historyData, 14);
             currentRSI = calculateRSI(historyData, 14);
