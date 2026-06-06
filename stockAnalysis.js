@@ -518,6 +518,39 @@ function calculateDivergence(candles, indicators, lookback = 50) {
 }
 
 
+/**
+ * Menghitung Relative Strength (RS) antara Saham dan IHSG
+ * Rumus: %Saham / %IHSG
+ * @param {Array} stockCandles Array objek OHLC saham
+ * @param {Array} ihsgCandles Array objek OHLC IHSG
+ * @param {number} period Periode lookback untuk menghitung % perubahan (default: 1)
+ */
+function calculateRelativeStrength(stockCandles, ihsgCandles) {
+  if (!stockCandles || !ihsgCandles || stockCandles.length <= 1 || ihsgCandles.length <= 1) {
+    return 0;
+  }
+
+  // Mengambil harga close saat ini dan harga close pada 'n' periode lalu
+  const currentStockClose = stockCandles[stockCandles.length - 1].close;
+  const prevStockClose = stockCandles[stockCandles.length - 2].close;
+
+  const currentIhsgClose = ihsgCandles[ihsgCandles.length - 1].close;
+  const prevIhsgClose = ihsgCandles[ihsgCandles.length - 2].close;
+
+  // Proteksi division by zero
+  if (prevStockClose === 0 || prevIhsgClose === 0) return 0;
+
+  // Hitung persentase perubahan masing-masing
+  const stockReturn = (currentStockClose / prevStockClose);
+  const ihsgReturn = (currentIhsgClose / prevIhsgClose);
+
+  // Proteksi jika return IHSG adalah 0 agar tidak terjadi nilai Infinity
+  if (ihsgReturn === 0) return 0;
+
+  // Rumus utama: %Saham : %IHSG
+  return stockReturn / ihsgReturn;
+}
+
 module.exports = {
   calculateAverage,
   calculateMA, 
@@ -532,5 +565,6 @@ module.exports = {
   calculateMFI, 
   calculateRSI,
   calculateADX,
-  calculateDivergence
+  calculateDivergence,
+  calculateRelativeStrength
 };
