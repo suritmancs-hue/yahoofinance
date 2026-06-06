@@ -4,7 +4,7 @@
 const { 
   calculateMA, calculateVolatilityRatio, calculateLRS, calculateATRP, calculateRange, 
   calculateAverage, calculateSTDEV, 
-  calculateMFI, calculateRSI, calculateADX, calculateDivergence
+  calculateMFI, calculateRSI, calculateADX, calculateDivergence, calculateRelativeStrength
 } = require('../stockAnalysis');
 
 const OFFSET = 1;
@@ -189,6 +189,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0, currentRange = 0, rangeRasio = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maClose = 0;
+        let currentRS = 0, prevRS = 0;
         let currentMFI = 0, currentRSI = 0, currentADX = 0;
         //let signalTrend = 0;
         
@@ -254,7 +255,15 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const ma3 = calculateMA(allVolumes, 3);
             const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
-            
+
+            const ticker = "^JKSE";
+            const subIHSG = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`);
+            const candleIHSG = await subIHSG.json();
+            const r = 3;
+            const arrayRS = calculateRelativeStrength(allCloses, arrayIHSG, ); 
+            currentRS = arrayRS[r - 1];
+            prevRS = arrayRS[r - 2];
+          
             currentMFI = calculateMFI(historyData, 14);
             currentRSI = calculateRSI(historyData, 14);
             currentADX = calculateADX(historyData, 14);
@@ -277,6 +286,8 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             currentNetOBV: Number(currentNetOBV_val.toFixed(2)),
             avgNetOBV: Number(avgNetOBV.toFixed(2)),
             strengthNetOBV: Number(strengthNetOBV.toFixed(2)),
+            currentRS:Number(currentRS.toFixed(2)),
+            slopeRS:Number(slopeRS.toFixed(2)),
             currentMFI: Number(currentMFI.toFixed(2)),
             currentRSI: Number(currentRSI.toFixed(2)),
             currentADX: Number(currentADX.toFixed(2))
