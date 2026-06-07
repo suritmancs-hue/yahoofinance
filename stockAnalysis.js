@@ -520,11 +520,11 @@ function calculateDivergence(candles, indicators, lookback = 50) {
 
 /**
  * Menghitung deret historis Relative Strength (RS) antara Saham dan IHSG
- * Rumus per bar: (Close_t / Close_t-1) Saham / (Close_t / Close_t-1) IHSG
- * @param {Array} stockCandles Array objek OHLC saham
- * @param {Array} ihsgCandles Array objek OHLC IHSG
- * @param {number} lookbackPeriod Jumlah bar historis RS yang ingin dihasilkan (default: 30)
- * @returns {Array} Array berisi deret nilai RS historis
+ * Menggunakan pemetaan kalender harian (Identik dengan pemetaan subcandle ke main candle)
+ * Rumus per bar: %Return Saham - %Return IHSG
+ * @param {Array} stockCandles Array objek OHLC saham (Utama)
+ * @param {Array} ihsgCandles Array objek OHLC IHSG (Dipetakan)
+ * @param {number} lookbackPeriod Jumlah bar historis RS (default: 20)
  */
 function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 20) {
   const rsHistory = [];
@@ -533,30 +533,52 @@ function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 2
     return rsHistory;
   }
 
-  // Menentukan batas loop agar aman dari out-of-bounds data terpendek
-  const maxAvailable = Math.min(stockCandles.length, ihsgCandles.length) - 1;
-  const checkPeriod = Math.min(maxAvailable, lookbackPeriod);
+  const TZ_OFFSET = 8 * 3600; // UTC+8 WITA
 
-  // Looping mundur dari k sampai 0 untuk membuat slice time-series
-  for (let k = checkPeriod; k >= 0; k--) {
-    const subStock = stockCandles.slice(0, stockCandles.length - k);
-    const subIhsg = ihsgCandles.slice(0, ihsgCandles.length - k);
+  // Helper untuk mengubah timestamp ke string tanggal murni "YYYY-MM-DD" di zona waktu IDX
+  const getLocalDateString = (ts) => {
+    const localTs = Number(ts) + TZ_OFFSET;
+    const date = new Date(localTs * 1000);
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  };
 
-    if (subStock.length >= 2 && subIhsg.length >= 2) {
-      const currentStockClose = subStock[subStock.length - 1].close;
-      const prevStockClose = subStock[subStock.length - 2].close;
+  // 1. Petakan IHSG ke dalam Map dengan Key berupa tanggal "YYYY-MM-DD"
+  const ihsgMap = new Map();
+  ihsgCandles.forEach(candle => {
+    const dateKey = getLocalDateString(candle.timestamp);
+    ihsgMap.set(dateKey, candle.close);
+  });
 
-      const currentIhsgClose = subIhsg[subIhsg.length - 1].close;
-      const prevIhsgClose = subIhsg[subIhsg.length - 2].close;
+  const n = stockCandles.length;
+  const startIdx = Math.max(1, n - lookbackPeriod);
 
-      // Proteksi pembagian dengan nol
-      if (prevStockClose !== 0 && prevIhsgClose !== 0) {
-        const stockReturn = currentStockClose / prevStockClose;
-        const ihsgReturn = currentIhsgClose / prevIhsgClose;
-        rsHistory.push(stockReturn - ihsgReturn);
-      } else {
-        rsHistory.push(0);
-      }
+  // 2. Loop berjalan maju menyusuri stockCandles sebagai basis Lini Masa Utama
+  for (let i = startIdx; i < n; i++) {
+    const currentStock = stockCandles[i];
+    const prevStock = stockCandles[i - 1];
+
+    if (prevStock.close === 0) {
+      rsHistory.push(0);
+      continue;
+    }
+
+    // Dapatkan key tanggal untuk bar hari ini dan kemarin berdasarkan tanggal Stock
+    const currentDateKey = getLocalDateString(currentStock.timestamp);
+    const prevDateKey = getLocalDateString(prevStock.timestamp);
+
+    // Ambil data IHSG yang terpetakan di tanggal tersebut
+    const currentIhsgClose = ihsgMap.get(currentDateKey);
+    const prevIhsgClose = ihsgMap.get(prevDateKey);
+
+    // Jika data IHSG di tanggal saham tersebut ditemukan, lakukan kalkulasi spread return
+    if (currentIhsgClose !== undefined && prevIhsgClose !== undefined && prevIhsgClose !== 0) {
+      const stockReturn = ((currentStock.close - prevStock.close) / prevStock.close) * 100;
+      const ihsgReturn = ((currentIhsgClose - prevIhsgClose) / prevIhsgClose) * 100;
+
+      rsHistory.push(stockReturn - ihsgReturn);
+    } else {
+      // Jika salah satu tanggal IHSG bolong, berikan nilai fallback netral (0)
+      rsHistory.push(0);
     }
   }
 
