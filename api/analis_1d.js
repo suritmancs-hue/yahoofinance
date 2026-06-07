@@ -281,15 +281,17 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             if (ihsgCandles.length > 0) {
                 const rsHistory = calculateRelativeStrength(historyData, ihsgCandles, 20);
                 console.log(rsHistory);
-                currentRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 1] : 0;
-                prevRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 2] : 0;
+                const rawCurrentRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 1] : 0;
+                const rawPrevRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 2] : 0;
                 const last3RS = rsHistory.slice(-3); 
                 const countRS0 = last3RS.filter(val => val > 0).length
               
-                if (currentRS < prevRS || countRS0 < 2) {
+                if (rawCurrentRS < rawPrevRS || countRS0 < 2) {
                   currentRS = 0;
+                } else {
+                  currentRS = rawCurrentRS;
                 }
-                // 3. Hitung kemiringan (LRS) dari data historis RS tersebut
+              
                 slopeRS = calculateLRS(rsHistory, 14);
             }
           
