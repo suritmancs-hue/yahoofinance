@@ -277,9 +277,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
 
             // --- KALKULASI RELATIVE STRENGTH & SLOPE ---
             if (ihsgCandles.length > 0) {
-                // 1. Dapatkan array historis RS langsung (default 30 bar terakhir)
-                const rsHistory = calculateRelativeStrength(historyData, ihsgCandles, 30);
-                // 2. Nilai RS
+                const rsHistory = calculateRelativeStrength(historyData, ihsgCandles, 20);
                 currentRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 1] : 0;
                 prevRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 2] : 0;
                 const last3RS = rsHistory.slice(-3); 
