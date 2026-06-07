@@ -520,11 +520,8 @@ function calculateDivergence(candles, indicators, lookback = 50) {
 
 /**
  * Menghitung deret historis Relative Strength (RS) antara Saham dan IHSG
- * Menggunakan pemetaan kalender harian (Identik dengan pemetaan subcandle ke main candle)
+ * Menggunakan pemetaan kalender harian (Aman dari manipulasi format String/Unix Timestamp)
  * Rumus per bar: %Return Saham - %Return IHSG
- * @param {Array} stockCandles Array objek OHLC saham (Utama)
- * @param {Array} ihsgCandles Array objek OHLC IHSG (Dipetakan)
- * @param {number} lookbackPeriod Jumlah bar historis RS (default: 20)
  */
 function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 20) {
   const rsHistory = [];
@@ -535,10 +532,24 @@ function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 2
 
   const TZ_OFFSET = 8 * 3600; // UTC+8 WITA
 
-  // Helper untuk mengubah timestamp ke string tanggal murni "YYYY-MM-DD" di zona waktu IDX
+  // Helper adaptif: Bisa membaca Unix Timestamp (Angka) maupun UTC/WITA String hasil convertTimestamp
   const getLocalDateString = (ts) => {
-    const localTs = Number(ts) + TZ_OFFSET;
-    const date = new Date(localTs * 1000);
+    let date;
+    
+    if (typeof ts === 'number' || !isNaN(Number(ts))) {
+      // Jika masih berupa Unix Timestamp murni (Detik)
+      const localTs = Number(ts) + TZ_OFFSET;
+      date = new Date(localTs * 1000);
+    } else {
+      // Jika sudah di-convert menjadi string tanggal (contoh: "Sun, 05 Jun 2026 10:00:00 WITA")
+      // Bersihkan teks kustom 'WITA' agar bisa di-parse oleh Engine Date secara native
+      const cleanTsStr = String(ts).replace('WITA', 'GMT+0800');
+      date = new Date(cleanTsStr);
+    }
+
+    // Jika parsing gagal, return key kosong agar tidak merusak sistem
+    if (isNaN(date.getTime())) return 'INVALID_DATE';
+
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
   };
 
@@ -546,7 +557,9 @@ function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 2
   const ihsgMap = new Map();
   ihsgCandles.forEach(candle => {
     const dateKey = getLocalDateString(candle.timestamp);
-    ihsgMap.set(dateKey, candle.close);
+    if (dateKey !== 'INVALID_DATE') {
+      ihsgMap.set(dateKey, candle.close);
+    }
   });
 
   const n = stockCandles.length;
