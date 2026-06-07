@@ -255,15 +255,42 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             const ma3 = calculateMA(allVolumes, 3);
             const ma10 = calculateMA(allVolumes.slice(0, -3), 10);
             avgVol = ma10 === 0 ? 0 : ma3 / ma10;
+          
+            // --- FETCH & PARSING DATA IHSG (^JKSE) ---
+            const ihsgRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/^JKSE?interval=${interval}&range=${mainRange}`);
+            const ihsgData = await ihsgRes.json();
+            const ihsgResult = ihsgData?.chart?.result?.[0];
+            const ihsgQuoteRaw = ihsgResult?.indicators.quote[0];
+            
+            let ihsgCandles = [];
+            if (ihsgResult && ihsgQuoteRaw) {
+                ihsgCandles = ihsgResult.timestamp.map((ts, i) => ({
+                    timestamp: ts,
+                    close: ihsgQuoteRaw.close[i]
+                })).filter((d) => typeof d.close === 'number' && !isNaN(d.close));
+                
+                // Sinkronisasi backday IHSG agar seimbang dengan saham
+                if (!isNaN(backdayInt) && backdayInt > 0 && ihsgCandles.length > backdayInt) {
+                    ihsgCandles.splice(-backdayInt);
+                }
+            }
 
-            const ticker = "^JKSE";
-            const subIHSG = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${mainRange}`);
-            const candleIHSG = await subIHSG.json();
-            const r = 3;
-            const arrayRS = calculateRelativeStrength(allCloses, candleIHSG); 
-            currentRS = arrayRS[r - 1];
-            prevRS = arrayRS[r - 2];
-            slopeRS = 1;
+            // --- KALKULASI RELATIVE STRENGTH & SLOPE ---
+            if (ihsgCandles.length > 0) {
+                // 1. Dapatkan array historis RS langsung (default 30 bar terakhir)
+                const rsHistory = calculateRelativeStrength(historyData, ihsgCandles, 30);
+                // 2. Nilai RS
+                currentRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 1] : 0;
+                prevRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 2] : 0;
+                const last3RS = rsHistory.slice(-3); 
+                const countRS0 = last3RS.filter(val => val > 0).length
+              
+                if (currentRS < prevRS || countRS0 < 2) {
+                  currentRS = 0;
+                }
+                // 3. Hitung kemiringan (LRS) dari data historis RS tersebut
+                slopeRS = calculateLRS(rsHistory, 14);
+            }
           
             currentMFI = calculateMFI(historyData, 14);
             currentRSI = calculateRSI(historyData, 14);
