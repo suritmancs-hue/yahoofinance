@@ -274,6 +274,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                     ihsgCandles.splice(-backdayInt);
                 }
             }
+            console.log(ihsgCandles);
 
             // --- KALKULASI RELATIVE STRENGTH & SLOPE ---
             if (ihsgCandles.length > 0) {
