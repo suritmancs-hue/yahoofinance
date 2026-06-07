@@ -278,7 +278,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
             // --- KALKULASI RELATIVE STRENGTH & SLOPE ---
             if (ihsgCandles.length > 0) {
                 const rsHistory = calculateRelativeStrength(historyData, ihsgCandles, 20);
-                console.log(rsHistory);
+                //console.log(rsHistory);
                 const rawCurrentRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 1] : 0;
                 const rawPrevRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 2] : 0;
                 const last3RS = rsHistory.slice(-3); 
