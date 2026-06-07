@@ -585,8 +585,8 @@ function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 2
 
     // Jika data IHSG di tanggal saham tersebut ditemukan, lakukan kalkulasi spread return
     if (currentIhsgClose !== undefined && prevIhsgClose !== undefined && prevIhsgClose !== 0) {
-      const stockReturn = ((currentStock.close - prevStock.close) / prevStock.close) * 100;
-      const ihsgReturn = ((currentIhsgClose - prevIhsgClose) / prevIhsgClose) * 100;
+      const stockReturn = ((currentStock.close - prevStock.close) / prevStock.close);
+      const ihsgReturn = ((currentIhsgClose - prevIhsgClose) / prevIhsgClose);
 
       rsHistory.push(stockReturn - ihsgReturn);
     } else {
