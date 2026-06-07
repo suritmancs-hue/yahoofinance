@@ -58,7 +58,6 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         if (!isNaN(backdayInt) && backdayInt > 0 && mainCandles.length > backdayInt) {
             mainCandles.splice(-backdayInt);
         }
-        console.log(mainCandles);
       
         // --- PENGECEKAN SYARAT AWAL (Setelah Potong Backday) ---
         const n = mainCandles.length;
@@ -275,7 +274,6 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                     ihsgCandles.splice(-backdayInt);
                 }
             }
-            console.log(ihsgCandles);
 
             // --- KALKULASI RELATIVE STRENGTH & SLOPE ---
             if (ihsgCandles.length > 0) {
