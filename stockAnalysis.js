@@ -553,14 +553,9 @@ function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 2
       if (prevStockClose !== 0 && prevIhsgClose !== 0) {
         const stockReturn = currentStockClose / prevStockClose;
         const ihsgReturn = currentIhsgClose / prevIhsgClose;
-
-        if (ihsgReturn !== 0) {
-          rsHistory.push(stockReturn - ihsgReturn);
-        } else {
-          rsHistory.push(1); // Default jika IHSG flat
-        }
+        rsHistory.push(stockReturn - ihsgReturn);
       } else {
-        rsHistory.push(1);
+        rsHistory.push(0);
       }
     }
   }
