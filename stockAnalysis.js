@@ -519,36 +519,53 @@ function calculateDivergence(candles, indicators, lookback = 50) {
 
 
 /**
- * Menghitung Relative Strength (RS) antara Saham dan IHSG
- * Rumus: %Saham / %IHSG
+ * Menghitung deret historis Relative Strength (RS) antara Saham dan IHSG
+ * Rumus per bar: (Close_t / Close_t-1) Saham / (Close_t / Close_t-1) IHSG
  * @param {Array} stockCandles Array objek OHLC saham
  * @param {Array} ihsgCandles Array objek OHLC IHSG
- * @param {number} period Periode lookback untuk menghitung % perubahan (default: 1)
+ * @param {number} lookbackPeriod Jumlah bar historis RS yang ingin dihasilkan (default: 30)
+ * @returns {Array} Array berisi deret nilai RS historis
  */
-function calculateRelativeStrength(stockCandles, ihsgCandles) {
-  if (!stockCandles || !ihsgCandles || stockCandles.length <= 1 || ihsgCandles.length <= 1) {
-    return 0;
+function calculateRelativeStrength(stockCandles, ihsgCandles, lookbackPeriod = 20) {
+  const rsHistory = [];
+  
+  if (!stockCandles || !ihsgCandles || stockCandles.length < 2 || ihsgCandles.length < 2) {
+    return rsHistory;
   }
 
-  // Mengambil harga close saat ini dan harga close pada 'n' periode lalu
-  const currentStockClose = stockCandles[stockCandles.length - 1].close;
-  const prevStockClose = stockCandles[stockCandles.length - 2].close;
+  // Menentukan batas loop agar aman dari out-of-bounds data terpendek
+  const maxAvailable = Math.min(stockCandles.length, ihsgCandles.length) - 1;
+  const checkPeriod = Math.min(maxAvailable, lookbackPeriod);
 
-  const currentIhsgClose = ihsgCandles[ihsgCandles.length - 1].close;
-  const prevIhsgClose = ihsgCandles[ihsgCandles.length - 2].close;
+  // Looping mundur dari k sampai 0 untuk membuat slice time-series
+  for (let k = checkPeriod; k >= 0; k--) {
+    const subStock = stockCandles.slice(0, stockCandles.length - k);
+    const subIhsg = ihsgCandles.slice(0, ihsgCandles.length - k);
 
-  // Proteksi division by zero
-  if (prevStockClose === 0 || prevIhsgClose === 0) return 0;
+    if (subStock.length >= 2 && subIhsg.length >= 2) {
+      const currentStockClose = subStock[subStock.length - 1].close;
+      const prevStockClose = subStock[subStock.length - 2].close;
 
-  // Hitung persentase perubahan masing-masing
-  const stockReturn = (currentStockClose / prevStockClose);
-  const ihsgReturn = (currentIhsgClose / prevIhsgClose);
+      const currentIhsgClose = subIhsg[subIhsg.length - 1].close;
+      const prevIhsgClose = subIhsg[subIhsg.length - 2].close;
 
-  // Proteksi jika return IHSG adalah 0 agar tidak terjadi nilai Infinity
-  if (ihsgReturn === 0) return 0;
+      // Proteksi pembagian dengan nol
+      if (prevStockClose !== 0 && prevIhsgClose !== 0) {
+        const stockReturn = currentStockClose / prevStockClose;
+        const ihsgReturn = currentIhsgClose / prevIhsgClose;
 
-  // Rumus utama: %Saham : %IHSG
-  return stockReturn / ihsgReturn;
+        if (ihsgReturn !== 0) {
+          rsHistory.push(stockReturn - ihsgReturn);
+        } else {
+          rsHistory.push(1); // Default jika IHSG flat
+        }
+      } else {
+        rsHistory.push(1);
+      }
+    }
+  }
+
+  return rsHistory;
 }
 
 module.exports = {
