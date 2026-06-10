@@ -189,7 +189,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
         let volSpikeRatio = 0, avgVol = 0, volatilityRatio = 0, currentLRS = 0; currentATRP = 0, currentRange = 0, rangeRasio = 0;
         let currentDeltaOBV_val = 0, currentNetOBV_val = 0, avgNetOBV = 0, strengthNetOBV = 0;
         let maClose = 0;
-        let currentRS = 0, prevRS = 0;
+        let currentRS = 0, slopeRS = 0;
         let currentMFI = 0, currentRSI = 0, currentADX = 0;
         //let signalTrend = 0;
         
@@ -285,7 +285,7 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 const last3RS = rsHistory.slice(-3); 
                 const countRS0 = last3RS.filter(val => val > 0.05).length
               
-                If ((rawCurrentRS < rawPrevRS && rawCurrentRS < rawPrev2RS) || countRS0 < 2) {
+                if ((rawCurrentRS < rawPrevRS && rawCurrentRS < rawPrev2RS) || countRS0 < 2) {
                   currentRS = 0;
                 } else {
                   currentRS = rawCurrentRS;
