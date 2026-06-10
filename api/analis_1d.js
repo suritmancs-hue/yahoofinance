@@ -283,19 +283,13 @@ async function processSingleTicker(ticker, interval, subinterval, backday = 0) {
                 const rawPrevRS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 2] : 0;
                 const rawPrev2RS = rsHistory.length > 0 ? rsHistory[rsHistory.length - 3] : 0;
                 const last3RS = rsHistory.slice(-3); 
-                const countRS0 = last3RS.filter(val => val > 0.5).length
+                const countRS0 = last3RS.filter(val => val > 0.05).length
               
-                /*if ((rawCurrentRS < rawPrevRS && rawCurrentRS < rawPrev2RS) || countRS0 < 2) {
+                If ((rawCurrentRS < rawPrevRS && rawCurrentRS < rawPrev2RS) || countRS0 < 2) {
                   currentRS = 0;
                 } else {
                   currentRS = rawCurrentRS;
-                }*/
-
-                currentRS = rawCurrentRS;
-
-                console.log(rawCurrentRS);
-                console.log(rawPrevRS);
-                console.log(rawPrev2RS);
+                }
               
                 slopeRS = calculateLRS(rsHistory, 14);
             }
